@@ -44,6 +44,16 @@ app.use('/api/v1/recognize', aiRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 
+// Root route
+app.get('/', (req, res) => {
+    res.json({
+        system: "Attendance Management System API",
+        status: "Online",
+        version: "1.0.0",
+        endpoints: ["/health", "/api/v1/"]
+    });
+});
+
 // Health check
 app.get('/health', (req, res) => {
     res.status(200).json({
