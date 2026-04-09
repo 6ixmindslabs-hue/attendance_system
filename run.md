@@ -29,11 +29,14 @@ Important:
 
 Open 3 terminals.
 
-### 1. Start AI service
+### 1. Setup & Start AI service
+
+> [!NOTE]
+> If `.venv312` does not exist, create it with: `python -m venv .venv312` and install dependencies with `.\.venv312\Scripts\pip.exe install -r requirements.txt`
 
 ```powershell
-cd c:\Users\dhine\Desktop\ATTENDANCE_MANAGEMENT\ai-service
-.\.venv312\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8001
+cd c:\Users\dhine\Desktop\attendance_system\ai-service
+.\.venv312\Scripts\python.exe -m uvicorn app:app --host 0.0.0.0 --port 8001
 ```
 
 Expected health check:
@@ -45,7 +48,7 @@ Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8001/health | Select-Object 
 ### 2. Start backend
 
 ```powershell
-cd c:\Users\dhine\Desktop\ATTENDANCE_MANAGEMENT\backend
+cd c:\Users\dhine\Desktop\attendance_system\backend
 npm run dev
 ```
 
@@ -58,7 +61,7 @@ Invoke-WebRequest -UseBasicParsing http://127.0.0.1:5000/health | Select-Object 
 ### 3. Start frontend
 
 ```powershell
-cd c:\Users\dhine\Desktop\ATTENDANCE_MANAGEMENT\frontend
+cd c:\Users\dhine\Desktop\attendance_system\frontend
 npm run dev -- --host 0.0.0.0 --port 5173
 ```
 
@@ -105,8 +108,8 @@ Stop-Process -Id <PID> -Force
 Use this interpreter:
 
 ```powershell
-cd c:\Users\dhine\Desktop\ATTENDANCE_MANAGEMENT\ai-service
-.\.venv312\Scripts\python.exe -m uvicorn main:app --host 0.0.0.0 --port 8001
+cd c:\Users\dhine\Desktop\attendance_system\ai-service
+.\.venv312\Scripts\python.exe -m uvicorn app:app --host 0.0.0.0 --port 8001
 ```
 
 ### Frontend opens but API calls fail

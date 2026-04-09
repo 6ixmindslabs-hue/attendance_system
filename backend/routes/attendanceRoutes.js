@@ -12,7 +12,6 @@ import {
 } from '../services/attendanceSettingsService.js';
 import { syncAbsencesForToday } from '../services/attendanceSyncService.js';
 import { getHolidays } from '../services/calendarService.js';
-import { REVIEW_STATUS } from '../services/reviewService.js';
 import { authenticateRequest, requireAdmin, scopeAttendanceReportAccess } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -235,36 +234,6 @@ router.get('/report', authenticateRequest, scopeAttendanceReportAccess, async (r
                     record.period
                 ))
         );
-        const pendingReviewKeys = new Set();
-        const synthStudentIds = synthStudents.map((student) => student.id).filter(Boolean);
-
-        if (synthStudentIds.length > 0) {
-            const { start: reviewStart } = getLocalDateBounds(effectiveFromDate);
-            const { end: reviewEnd } = getLocalDateBounds(effectiveToDate);
-            const { data: pendingReviews, error: pendingReviewsError } = await supabase
-                .from('recognition_reviews')
-                .select('candidate_student_id, period, created_at')
-                .eq('status', REVIEW_STATUS.PENDING)
-                .in('candidate_student_id', synthStudentIds)
-                .gte('created_at', reviewStart.toISOString())
-                .lte('created_at', reviewEnd.toISOString());
-
-            if (pendingReviewsError && !pendingReviewsError.message?.includes('recognition_reviews')) {
-                return res.status(400).json({ error: pendingReviewsError.message });
-            }
-
-            for (const review of pendingReviews || []) {
-                if (!review.candidate_student_id || !review.period) {
-                    continue;
-                }
-
-                pendingReviewKeys.add(buildAttendanceKey(
-                    review.candidate_student_id,
-                    formatLocalDate(new Date(review.created_at)),
-                    review.period
-                ));
-            }
-        }
 
         const derivedAbsences = [];
         for (const reportDate of getDateRange(effectiveFromDate, effectiveToDate)) {
@@ -285,7 +254,7 @@ router.get('/report', authenticateRequest, scopeAttendanceReportAccess, async (r
 
                     const attendanceKey = buildAttendanceKey(student.id, reportDate, period);
 
-                    if (existingAttendanceKeys.has(attendanceKey) || pendingReviewKeys.has(attendanceKey)) {
+                    if (existingAttendanceKeys.has(attendanceKey)) {
                         continue;
                     }
 

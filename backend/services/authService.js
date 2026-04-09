@@ -7,12 +7,19 @@ const TOKEN_ISSUER = 'attendance-management-backend';
 const TOKEN_AUDIENCE = 'attendance-management-app';
 const DEFAULT_TOKEN_TTL = process.env.JWT_EXPIRES_IN || '12h';
 
-const resolveJwtSecret = () => (
-    process.env.JWT_SECRET ||
-    process.env.ADMIN_PASSWORD ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    'attendance-management-development-secret'
-);
+const resolveJwtSecret = () => {
+    const configuredSecret = process.env.JWT_SECRET?.trim();
+
+    if (configuredSecret) {
+        return configuredSecret;
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('JWT_SECRET must be configured in production.');
+    }
+
+    return 'attendance-management-development-secret';
+};
 
 const decodeTokenExpiry = (token) => {
     const decoded = jwt.decode(token);

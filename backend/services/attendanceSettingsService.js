@@ -7,9 +7,9 @@ export const DEFAULT_ATTENDANCE_SETTINGS = {
     evening_start: '15:30:00',
     evening_end: '17:00:00',
     auto_mark_absent: true,
-    auto_accept_threshold: 0.72,
+    auto_accept_threshold: 0.78,
     review_threshold: 0.58,
-    consensus_frames: 3,
+    consensus_frames: 1,
     cooldown_seconds: 20,
     review_expiry_minutes: 90
 };
@@ -204,9 +204,12 @@ export const hydrateAttendanceSettings = (row = {}) => ({
     evening_start: normalizeTimeValue(row.evening_start, DEFAULT_ATTENDANCE_SETTINGS.evening_start),
     evening_end: normalizeTimeValue(row.evening_end, DEFAULT_ATTENDANCE_SETTINGS.evening_end),
     auto_mark_absent: row.auto_mark_absent ?? DEFAULT_ATTENDANCE_SETTINGS.auto_mark_absent,
-    auto_accept_threshold: Number(row.auto_accept_threshold ?? DEFAULT_ATTENDANCE_SETTINGS.auto_accept_threshold),
+    auto_accept_threshold: Math.max(
+        Number(row.auto_accept_threshold ?? DEFAULT_ATTENDANCE_SETTINGS.auto_accept_threshold),
+        DEFAULT_ATTENDANCE_SETTINGS.auto_accept_threshold
+    ),
     review_threshold: Number(row.review_threshold ?? DEFAULT_ATTENDANCE_SETTINGS.review_threshold),
-    consensus_frames: Number(row.consensus_frames ?? DEFAULT_ATTENDANCE_SETTINGS.consensus_frames),
+    consensus_frames: DEFAULT_ATTENDANCE_SETTINGS.consensus_frames,
     cooldown_seconds: Number(row.cooldown_seconds ?? DEFAULT_ATTENDANCE_SETTINGS.cooldown_seconds),
     review_expiry_minutes: Number(row.review_expiry_minutes ?? DEFAULT_ATTENDANCE_SETTINGS.review_expiry_minutes)
 });
@@ -254,10 +257,6 @@ const validateAttendanceSettings = (settings) => {
 
     settings.auto_accept_threshold = ensureDecimalInRange(settings.auto_accept_threshold, 'Auto-accept threshold', 0, 1);
     settings.review_threshold = ensureDecimalInRange(settings.review_threshold, 'Review threshold', 0, 1);
-
-    if (settings.review_threshold >= settings.auto_accept_threshold) {
-        throw new Error('Review threshold must be lower than the auto-accept threshold.');
-    }
 
     settings.consensus_frames = ensureIntegerInRange(settings.consensus_frames, 'Consensus frames', 1, 10);
     settings.cooldown_seconds = ensureIntegerInRange(settings.cooldown_seconds, 'Cooldown seconds', 1, 300);

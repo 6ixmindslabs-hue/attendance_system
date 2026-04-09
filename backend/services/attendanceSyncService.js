@@ -8,7 +8,6 @@ import {
     getLocalDateBounds
 } from './attendanceSettingsService.js';
 import { isHoliday } from './calendarService.js';
-import { expireStaleReviews, REVIEW_STATUS } from './reviewService.js';
 
 export const syncAbsencesForToday = async (now = new Date()) => {
     if (getLocalDayOfWeek(now) === 0) {
@@ -16,7 +15,6 @@ export const syncAbsencesForToday = async (now = new Date()) => {
     }
 
     const settings = await getAttendanceSettings();
-    await expireStaleReviews(settings.review_expiry_minutes);
 
     const holidayInfo = await isHoliday(now);
 
@@ -84,22 +82,8 @@ export const syncAbsencesForToday = async (now = new Date()) => {
         }
 
         const alreadyMarked = new Set((existingAttendance || []).map((record) => record.student_id));
-        const { data: pendingReviews, error: pendingReviewsError } = await supabase
-            .from('recognition_reviews')
-            .select('candidate_student_id')
-            .eq('period', period)
-            .eq('status', REVIEW_STATUS.PENDING)
-            .gte('created_at', start.toISOString())
-            .lte('created_at', end.toISOString());
-
-        if (pendingReviewsError && !pendingReviewsError.message?.includes('recognition_reviews')) {
-            throw new Error(pendingReviewsError.message);
-        }
-
-        const reviewBlockedStudents = new Set((pendingReviews || []).map((review) => review.candidate_student_id).filter(Boolean));
         const missingStudents = (students || [])
             .filter((student) => !alreadyMarked.has(student.id))
-            .filter((student) => !reviewBlockedStudents.has(student.id))
             .map((student) => ({
                 student_id: student.id,
                 session_id: null,

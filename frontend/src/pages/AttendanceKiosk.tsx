@@ -17,8 +17,7 @@ const KIOSK_SCREENSHOT_QUALITY = 0.92;
 
 type RecognitionStatus =
   | 'Success'
-  | 'Duplicate'
-  | 'ReviewRequired'
+  | 'Recent'
   | 'Pending'
   | 'Unknown'
   | 'Blocked'
@@ -63,10 +62,10 @@ type RecognitionApiResponse = {
 const DEFAULT_GUIDE: LiveGuide = {
   status: 'Idle',
   title: 'Face Tracking Ready',
-  message: 'Look at the camera and let the live detector lock onto your face.',
+  message: 'Look at the camera and hold still while the station confirms your scan.',
   tone: 'neutral',
   progressCurrent: 0,
-  progressTotal: 3
+  progressTotal: 1
 };
 
 const DEFAULT_FACE_TRACKING_STATE: FaceOverlaySnapshot = {
@@ -99,12 +98,10 @@ const getLogName = (status: RecognitionStatus, student?: string | null) => {
   if (status === 'TooDark') return 'Increase Lighting';
   if (status === 'TooBlurry') return 'Hold Camera Steady';
   if (status === 'MoveCloser') return 'Move Closer';
-  if (status === 'MoveBack') return 'Move Back';
+  if (status === 'MoveBack') return 'Step Back Slightly';
   if (status === 'CenterFace') return 'Center Your Face';
   if (status === 'FrameRetry') return 'Retrying Scan';
-  if (status === 'Locked') return 'Face Locked';
-  if (status === 'Loading') return 'Loading Detector';
-  if (status === 'Adjusting') return 'Adjusting Face Box';
+  if (status === 'Recent') return 'Recent Scan Saved';
   if (status === 'Unknown') return 'Not Recognized';
   if (status === 'Error') return 'System Error';
   return 'Face Scan';
@@ -120,13 +117,13 @@ const getCaptureDelay = (status?: string) => {
   if (status === 'NoFace') return 900;
   if (status === 'TooDark' || status === 'TooBlurry' || status === 'MoveCloser' || status === 'MoveBack' || status === 'CenterFace') return 850;
   if (status === 'FrameRetry') return 450;
-  if (status === 'Success' || status === 'Duplicate' || status === 'ReviewRequired') return 1500;
+  if (status === 'Success' || status === 'Recent') return 1500;
   if (status === 'Blocked') return 2000;
   return 1200;
 };
 
 const shouldPromoteToLastScan = (status: RecognitionStatus) => (
-  ['Success', 'Duplicate', 'ReviewRequired', 'Blocked', 'Unknown', 'Error'].includes(status)
+  ['Success', 'Recent', 'Blocked', 'Unknown', 'Error'].includes(status)
 );
 
 const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveGuide => {
@@ -136,10 +133,10 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
     return {
       status,
       title: 'Loading Detector',
-      message: message || 'Starting real-time face tracking for this kiosk.',
+      message: message || 'Starting real-time face tracking for this station.',
       tone: 'neutral',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
@@ -147,7 +144,7 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
     return {
       status,
       title: 'Face Locked',
-      message: message || 'Hold steady while we capture a recognition frame.',
+      message: message || 'Hold still while we capture the recognition frame.',
       tone: 'ready',
       progressCurrent: 1,
       progressTotal: 1
@@ -161,7 +158,7 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
       message: message || 'Tracking your face. Hold still for a tighter lock.',
       tone: 'warning',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
@@ -172,7 +169,7 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
       message: message || 'One clear face found. Keep still while we confirm the match.',
       tone: 'ready',
       progressCurrent: pendingProgress?.current || 1,
-      progressTotal: pendingProgress?.total || 3
+      progressTotal: pendingProgress?.total || 1
     };
   }
 
@@ -183,7 +180,7 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
       message: message || 'Only one face should be visible to the kiosk.',
       tone: 'danger',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
@@ -194,7 +191,7 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
       message: message || 'Look at the camera so the detector can find your face.',
       tone: 'danger',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
@@ -205,18 +202,18 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
       message: message || 'Bring your face slightly closer to the camera.',
       tone: 'warning',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
   if (status === 'MoveBack') {
     return {
       status,
-      title: 'Move Back',
-      message: message || 'Step back slightly so your face fits comfortably in frame.',
+      title: 'Step Back Slightly',
+      message: message || 'Move back a little so your face fits comfortably in the frame.',
       tone: 'warning',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
@@ -227,7 +224,7 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
       message: message || 'Move your face toward the middle of the screen.',
       tone: 'warning',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
@@ -235,10 +232,10 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
     return {
       status,
       title: 'Reading Camera Frame',
-      message: message || 'Retrying a cleaner frame from the camera.',
+      message: message || 'Retrying with a cleaner frame from the camera.',
       tone: 'neutral',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
@@ -249,7 +246,7 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
       message: message || 'Move toward better light so your face is easier to read.',
       tone: 'warning',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
@@ -260,7 +257,7 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
       message: message || 'Keep your face steady for a sharper capture.',
       tone: 'warning',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
@@ -270,30 +267,19 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
       title: 'Attendance Marked',
       message: message || 'Recognition completed successfully.',
       tone: 'success',
-      progressCurrent: 3,
-      progressTotal: 3
+      progressCurrent: 1,
+      progressTotal: 1
     };
   }
 
-  if (status === 'Duplicate') {
+  if (status === 'Recent') {
     return {
       status,
-      title: 'Already Processed',
-      message: message || 'This attendance was already captured recently.',
-      tone: 'neutral',
-      progressCurrent: 3,
-      progressTotal: 3
-    };
-  }
-
-  if (status === 'ReviewRequired') {
-    return {
-      status,
-      title: 'Sent For Review',
-      message: message || 'A staff member will verify this scan.',
-      tone: 'neutral',
-      progressCurrent: 3,
-      progressTotal: 3
+      title: 'Please Wait',
+      message: message || 'A recent scan was just saved. Try again after the short gap.',
+      tone: 'warning',
+      progressCurrent: 1,
+      progressTotal: 1
     };
   }
 
@@ -304,7 +290,7 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
       message: message || 'Attendance cannot be marked right now.',
       tone: 'danger',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
@@ -315,7 +301,7 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
       message: message || 'Try again with a clear front-facing pose.',
       tone: 'warning',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
@@ -326,7 +312,7 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
       message: message || 'Recognition service is unavailable. Please try again shortly.',
       tone: 'danger',
       progressCurrent: 0,
-      progressTotal: 3
+      progressTotal: 1
     };
   }
 
@@ -334,11 +320,11 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
 };
 
 const getGuideToneClasses = (tone: LiveGuide['tone']) => {
-  if (tone === 'ready') return 'border-indigo-400 bg-indigo-900/80 text-white';
-  if (tone === 'warning') return 'border-amber-400 bg-amber-900/80 text-white';
-  if (tone === 'danger') return 'border-rose-400 bg-rose-900/80 text-white';
-  if (tone === 'success') return 'border-emerald-400 bg-emerald-900/80 text-white';
-  return 'border-white/20 bg-black/60 text-white';
+  if (tone === 'ready') return 'border-cyan-400/50 bg-cyan-600/18 text-white';
+  if (tone === 'warning') return 'border-amber-300/50 bg-amber-500/16 text-white';
+  if (tone === 'danger') return 'border-rose-300/50 bg-rose-500/16 text-white';
+  if (tone === 'success') return 'border-emerald-300/50 bg-emerald-500/16 text-white';
+  return 'border-white/15 bg-slate-950/60 text-white';
 };
 
 const getTrackingBadgeClasses = (trackingState: FaceOverlaySnapshot) => {
@@ -351,6 +337,14 @@ const getTrackingBadgeClasses = (trackingState: FaceOverlaySnapshot) => {
   }
 
   return 'border-rose-300 bg-rose-500/15 text-rose-100';
+};
+
+const getFeedBadgeClasses = (status: RecognitionStatus) => {
+  if (status === 'Success') return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100';
+  if (status === 'Recent') return 'border-amber-400/30 bg-amber-500/15 text-amber-100';
+  if (status === 'Blocked' || status === 'Error') return 'border-rose-400/30 bg-rose-500/15 text-rose-100';
+  if (status === 'Unknown') return 'border-orange-400/30 bg-orange-500/15 text-orange-100';
+  return 'border-white/15 bg-white/5 text-white/80';
 };
 
 const mapTrackingStateToGuide = (trackingState: FaceOverlaySnapshot): RecognitionStatus => {
@@ -371,10 +365,19 @@ export default function AttendanceKiosk() {
   const trackingStateRef = useRef<FaceOverlaySnapshot>(DEFAULT_FACE_TRACKING_STATE);
 
   const [lastScan, setLastScan] = useState<RecognitionLog | null>(null);
+  const [scanFeed, setScanFeed] = useState<RecognitionLog[]>([]);
   const [isCapturing, setIsCapturing] = useState(true);
   const [terminalId] = useState(DEFAULT_TERMINAL_ID);
   const [liveGuide, setLiveGuide] = useState<LiveGuide>(DEFAULT_GUIDE);
   const [trackingState, setTrackingState] = useState<FaceOverlaySnapshot>(DEFAULT_FACE_TRACKING_STATE);
+
+  const pushLog = useCallback((log: RecognitionLog) => {
+    setScanFeed((prev) => [log, ...prev].slice(0, 6));
+
+    if (shouldPromoteToLastScan(log.status)) {
+      setLastScan(log);
+    }
+  }, []);
 
   const handleTrackingStateChange = useCallback((nextState: FaceOverlaySnapshot) => {
     trackingStateRef.current = nextState;
@@ -457,9 +460,7 @@ export default function AttendanceKiosk() {
             setIsCapturing(false);
           }
 
-          if (shouldPromoteToLastScan(scanStatus)) {
-            setLastScan(log);
-          }
+          pushLog(log);
         }
 
         scheduleNextCapture(getCaptureDelay(status));
@@ -471,6 +472,7 @@ export default function AttendanceKiosk() {
           backend.status === 'TooDark' ||
           backend.status === 'TooBlurry' ||
           backend.status === 'MoveCloser' ||
+          backend.status === 'MoveBack' ||
           backend.status === 'CenterFace' ||
           backend.status === 'FrameRetry' ||
           backend.status === 'Unknown'
@@ -480,17 +482,13 @@ export default function AttendanceKiosk() {
 
         setLiveGuide(buildGuide(scanStatus, backend.message));
 
-        const log: RecognitionLog = {
+        pushLog({
           id: Date.now(),
           name: getLogName(scanStatus),
           time: new Date().toLocaleTimeString(),
           status: scanStatus,
           message: [backend.message, backend.error, backend.details].filter(Boolean).join(' - ') || 'Service unavailable'
-        };
-
-        if (shouldPromoteToLastScan(scanStatus)) {
-          setLastScan(log);
-        }
+        });
 
         scheduleNextCapture(2500);
       }
@@ -506,7 +504,7 @@ export default function AttendanceKiosk() {
         clearTimeout(timeoutId);
       }
     };
-  }, [isCapturing, terminalId]);
+  }, [isCapturing, pushLog, terminalId]);
 
   const toggleCapturing = useCallback(() => {
     setIsCapturing((currentValue) => {
@@ -519,7 +517,7 @@ export default function AttendanceKiosk() {
           message: 'Resume the kiosk to restart live face tracking.',
           tone: 'neutral',
           progressCurrent: 0,
-          progressTotal: 3
+          progressTotal: 1
         });
       }
 
@@ -527,15 +525,20 @@ export default function AttendanceKiosk() {
     });
   }, []);
 
+  const progressWidth = `${Math.min(100, Math.round((liveGuide.progressCurrent / Math.max(1, liveGuide.progressTotal)) * 100))}%`;
+
   return (
-    <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-black text-white">
-      <div className="absolute left-0 top-0 z-20 flex w-full items-center justify-between bg-gradient-to-b from-black/80 to-transparent p-6">
+    <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-[#03111f] text-white">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.22),transparent_28%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.14),transparent_25%),linear-gradient(180deg,rgba(3,17,31,0.78),rgba(3,17,31,0.08)_26%,rgba(3,17,31,0.9))]" />
+
+      <div className="absolute left-0 top-0 z-20 flex w-full items-center justify-between p-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 shadow-lg">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/90 shadow-[0_18px_40px_rgba(6,182,212,0.35)]">
             <ScanFace className="h-6 w-6 text-white" />
           </div>
-          <div className="border-l border-white/20 pl-4 text-lg font-semibold tracking-wider text-white">
-            KIOSK MODE
+          <div className="border-l border-white/15 pl-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.32em] text-cyan-200/75">Attendance Station</div>
+            <div className="text-lg font-semibold tracking-wide text-white">Live Recognition Kiosk</div>
           </div>
         </div>
 
@@ -546,25 +549,25 @@ export default function AttendanceKiosk() {
             </div>
           ) : null}
 
-          <div className="flex items-center gap-3 rounded-full border border-white/10 bg-black/40 px-4 py-2 text-sm font-medium text-white/80 shadow-lg backdrop-blur-md">
+          <div className="flex items-center gap-3 rounded-full border border-white/10 bg-slate-950/45 px-4 py-2 text-sm font-medium text-white/80 shadow-lg backdrop-blur-md">
             <Clock size={16} />
-            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {terminalId}
+            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} | {terminalId}
           </div>
         </div>
       </div>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center bg-gray-900">
+      <div className="relative flex flex-1 flex-col items-center justify-center">
         <Webcam
           audio={false}
           ref={webcamRef}
           screenshotFormat="image/jpeg"
           screenshotQuality={KIOSK_SCREENSHOT_QUALITY}
           forceScreenshotSourceSize
-          className="absolute inset-0 h-full w-full object-cover transform -scale-x-100"
+          className="absolute inset-0 h-full w-full object-cover -scale-x-100"
           videoConstraints={KIOSK_VIDEO_CONSTRAINTS}
         />
 
-        <div className="absolute inset-0 bg-black/18" />
+        <div className="absolute inset-0 bg-black/24" />
 
         <FaceDetectionOverlay
           webcamRef={webcamRef}
@@ -572,14 +575,82 @@ export default function AttendanceKiosk() {
           onStateChange={handleTrackingStateChange}
         />
 
-        <div className="absolute bottom-12 z-20 flex w-full flex-col items-center gap-4">
-          <div className={`animate-in slide-in-from-bottom flex items-center gap-4 rounded-2xl border px-6 py-4 shadow-xl backdrop-blur-md transition-all ${getGuideToneClasses(liveGuide.tone)}`}>
+        <div className="absolute left-6 top-24 z-20 hidden w-[320px] xl:block">
+          <div className="rounded-[28px] border border-white/10 bg-slate-950/45 p-5 shadow-2xl backdrop-blur-xl">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/70">Session Guide</div>
+            <h3 className="mt-2 text-2xl font-semibold text-white">Fast, touch-free attendance</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-200/75">
+              Stand alone in the frame, keep your face centered, and hold still until the kiosk confirms your scan.
+            </p>
+
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="flex items-center justify-between text-xs uppercase tracking-[0.22em] text-slate-300/70">
+                <span>Confirmation progress</span>
+                <span>{liveGuide.progressCurrent}/{liveGuide.progressTotal}</span>
+              </div>
+              <div className="mt-3 h-2 rounded-full bg-white/10">
+                <div className="h-2 rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400" style={{ width: progressWidth }} />
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <div className="text-xs uppercase tracking-[0.22em] text-slate-300/70">Camera status</div>
+                <div className="mt-1 text-lg font-semibold text-white">{isCapturing ? 'Active' : 'Paused'}</div>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <div className="text-xs uppercase tracking-[0.22em] text-slate-300/70">Live instruction</div>
+                <div className="mt-1 text-base font-semibold text-white">{liveGuide.title}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute right-6 top-24 z-20 hidden w-[340px] xl:block">
+          <div className="rounded-[28px] border border-white/10 bg-slate-950/45 p-5 shadow-2xl backdrop-blur-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/70">Recent Activity</div>
+                <h3 className="mt-2 text-xl font-semibold text-white">Scan timeline</h3>
+              </div>
+              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
+                {scanFeed.length} items
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {scanFeed.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-slate-300/65">
+                  Recognition events will appear here once scanning begins.
+                </div>
+              ) : (
+                scanFeed.map((log) => (
+                  <div key={log.id} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-white">{log.name}</div>
+                        <div className="mt-1 text-xs leading-5 text-slate-300/70">{log.message}</div>
+                      </div>
+                      <div className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] ${getFeedBadgeClasses(log.status)}`}>
+                        {log.status}
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-slate-400">{log.time}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-12 z-20 flex w-full flex-col items-center gap-4 px-6">
+          <div className={`flex max-w-3xl items-center gap-4 rounded-[28px] border px-6 py-4 shadow-xl backdrop-blur-md transition-all ${getGuideToneClasses(liveGuide.tone)}`}>
             {liveGuide.tone === 'success' ? (
               <CheckCircle2 size={24} />
             ) : liveGuide.tone === 'danger' ? (
               <ShieldAlert size={24} />
             ) : liveGuide.tone === 'ready' ? (
-              <div className="h-5 w-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             ) : (
               <ScanFace size={24} />
             )}
@@ -590,13 +661,19 @@ export default function AttendanceKiosk() {
             </div>
           </div>
 
-          {lastScan && lastScan.status === 'Success' ? (
-            <div className="mt-2 flex animate-in zoom-in-95 items-center gap-5 rounded-3xl bg-emerald-500 px-8 py-5 text-white shadow-[0_10px_40px_rgba(16,185,129,0.4)] duration-300">
-              <div className="rounded-full bg-emerald-600 p-2">
+          {lastScan && (lastScan.status === 'Success' || lastScan.status === 'Recent') ? (
+            <div className={`flex items-center gap-5 rounded-3xl px-8 py-5 text-white duration-300 ${
+              lastScan.status === 'Success'
+                ? 'bg-emerald-500 shadow-[0_10px_40px_rgba(16,185,129,0.4)]'
+                : 'bg-amber-500 shadow-[0_10px_40px_rgba(245,158,11,0.35)]'
+            }`}>
+              <div className={`rounded-full p-2 ${lastScan.status === 'Success' ? 'bg-emerald-600' : 'bg-amber-600'}`}>
                 <CheckCircle2 size={32} />
               </div>
               <div>
-                <p className="text-sm font-medium uppercase tracking-wider text-emerald-50">Attendance Logged</p>
+                <p className="text-sm font-medium uppercase tracking-wider text-white/85">
+                  {lastScan.status === 'Success' ? 'Attendance Logged' : 'Repeat Scan Cooling Down'}
+                </p>
                 <p className="text-2xl font-black">{lastScan.name}</p>
               </div>
             </div>
@@ -609,7 +686,7 @@ export default function AttendanceKiosk() {
           onClick={toggleCapturing}
           className={`rounded-full border px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-md transition-colors ${
             isCapturing
-              ? 'border-white/20 bg-black/50 text-white hover:bg-black/70'
+              ? 'border-white/20 bg-slate-950/45 text-white hover:bg-slate-950/65'
               : 'border-red-400 bg-red-500 text-white hover:bg-red-600'
           }`}
         >

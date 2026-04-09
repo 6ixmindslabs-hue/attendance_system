@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Shield, ArrowRight, ShieldCheck, Cpu, Mail, Key, Hash } from 'lucide-react';
+import { ArrowRight, Cpu, Hash, KeyRound, Mail, Shield, ShieldCheck, User } from 'lucide-react';
 
 import { useAuth } from '../auth/useAuth';
 import { api, getApiErrorMessage } from '../lib/api';
@@ -9,200 +9,218 @@ import type { AppSession } from '../types/app';
 type LoginMode = 'student' | 'institution';
 
 type LoginResponse = {
-    success: boolean;
-    message: string;
-    session: AppSession;
+  success: boolean;
+  message: string;
+  session: AppSession;
 };
 
 const initialInstitutionForm = {
-    username: '',
-    password: ''
+  username: '',
+  password: ''
 };
 
 export default function Login() {
-    const [loginType, setLoginType] = useState<LoginMode>('student');
-    const [studentRegisterNumber, setStudentRegisterNumber] = useState('');
-    const [institutionForm, setInstitutionForm] = useState(initialInstitutionForm);
-    const [status, setStatus] = useState('');
-    const [submitting, setSubmitting] = useState(false);
-    const { login } = useAuth();
-    const navigate = useNavigate();
+  const [loginType, setLoginType] = useState<LoginMode>('student');
+  const [studentRegisterNumber, setStudentRegisterNumber] = useState('');
+  const [institutionForm, setInstitutionForm] = useState(initialInstitutionForm);
+  const [status, setStatus] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-    const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        setSubmitting(true);
-        setStatus('');
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setStatus('');
 
-        try {
-            if (loginType === 'institution') {
-                const response = await api.post<LoginResponse>('/auth/login', {
-                    username: institutionForm.username.trim(),
-                    password: institutionForm.password
-                });
+    try {
+      if (loginType === 'institution') {
+        const response = await api.post<LoginResponse>('/auth/login', {
+          username: institutionForm.username.trim(),
+          password: institutionForm.password
+        });
 
-                if (response.data.success && response.data.session) {
-                    login(response.data.session);
-                    navigate('/admin', { replace: true });
-                }
-            } else {
-                const response = await api.post<LoginResponse>('/auth/student-login', {
-                    register_number: studentRegisterNumber.trim()
-                });
-
-                if (response.data.success && response.data.session) {
-                    login(response.data.session);
-                    navigate('/student', { replace: true });
-                }
-            }
-        } catch (error: unknown) {
-            setStatus(getApiErrorMessage(
-                error,
-                loginType === 'institution' ? 'Admin login failed.' : 'Student login failed.'
-            ));
-        } finally {
-            setSubmitting(false);
+        if (response.data.success && response.data.session) {
+          login(response.data.session);
+          navigate('/admin', { replace: true });
         }
-    };
+      } else {
+        const response = await api.post<LoginResponse>('/auth/student-login', {
+          register_number: studentRegisterNumber.trim()
+        });
 
-    return (
-        <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-blue-50/50 to-white font-sans">
-            <div className="w-full max-w-md sm:max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="p-6 sm:p-8 rounded-2xl shadow-lg bg-white/70 backdrop-blur-xl border border-white flex flex-col gap-5">
-                    
-                    {/* Header Group */}
-                    <div className="flex flex-col gap-2">
-                        <div className="text-xs font-bold uppercase tracking-widest text-blue-600">
-                            Sign In
-                        </div>
-                        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
-                            Attendify OS
-                        </h1>
-                        <p className="text-sm text-gray-500">
-                            Smart, Secure, Automated Attendance
-                        </p>
-                    </div>
+        if (response.data.success && response.data.session) {
+          login(response.data.session);
+          navigate('/student', { replace: true });
+        }
+      }
+    } catch (error: unknown) {
+      setStatus(getApiErrorMessage(
+        error,
+        loginType === 'institution' ? 'Admin login failed.' : 'Student login failed.'
+      ));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-                    {/* Toggle */}
-                    <div className="w-full flex rounded-full p-1 bg-gray-100 relative">
-                        <div 
-                            className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white rounded-full shadow transition-all duration-300 ease-out ${loginType === 'student' ? 'left-1' : 'left-[calc(50%+3px)]'}`}
-                        />
-                        <button 
-                            type="button" 
-                            onClick={() => { setLoginType('student'); setStatus(''); }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold transition-colors z-10 ${loginType === 'student' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            <User size={16} className={loginType === 'student' ? 'text-blue-600' : 'text-gray-400'} />
-                            Student
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => { setLoginType('institution'); setStatus(''); }}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold transition-colors z-10 ${loginType === 'institution' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
-                        >
-                            <Shield size={16} className={loginType === 'institution' ? 'text-blue-600' : 'text-gray-400'} />
-                            Admin
-                        </button>
-                    </div>
-
-                    <form onSubmit={handleLogin} className="flex flex-col gap-5">
-                        {/* Inputs Container */}
-                        <div className="flex flex-col gap-5 min-h-[140px]">
-                            {loginType === 'student' ? (
-                                <div className="flex flex-col gap-2 animate-in fade-in duration-300">
-                                    <label className="text-sm font-medium text-gray-700">Registration Number</label>
-                                    <div className="relative group w-full">
-                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
-                                            <Hash size={18} />
-                                        </div>
-                                        <input
-                                            type="text"
-                                            placeholder="Enter your student ID"
-                                            value={studentRegisterNumber}
-                                            onChange={(event) => setStudentRegisterNumber(event.target.value)}
-                                            required
-                                            className="w-full h-12 pl-10 pr-4 bg-white/60 border border-gray-200 text-gray-900 rounded-xl outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400 font-medium text-sm"
-                                        />
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col gap-5 animate-in fade-in duration-300">
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-medium text-gray-700">Email or Username</label>
-                                        <div className="relative group w-full">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
-                                                <Mail size={18} />
-                                            </div>
-                                            <input
-                                                type="text"
-                                                placeholder="Admin account"
-                                                value={institutionForm.username}
-                                                onChange={(event) => setInstitutionForm((prev) => ({ ...prev, username: event.target.value }))}
-                                                required
-                                                className="w-full h-12 pl-10 pr-4 bg-white/60 border border-gray-200 text-gray-900 rounded-xl outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400 font-medium text-sm"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-sm font-medium text-gray-700">Password</label>
-                                        <div className="relative group w-full">
-                                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors">
-                                                <Key size={18} />
-                                            </div>
-                                            <input
-                                                type="password"
-                                                placeholder="Enter password"
-                                                value={institutionForm.password}
-                                                onChange={(event) => setInstitutionForm((prev) => ({ ...prev, password: event.target.value }))}
-                                                required
-                                                className="w-full h-12 pl-10 pr-4 bg-white/60 border border-gray-200 text-gray-900 rounded-xl outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-gray-400 font-medium text-sm"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Error Space Guarantee */}
-                        <div className={`min-h-[44px] flex items-center w-full transition-opacity duration-300 ${status ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                            <div className="w-full p-2.5 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 text-sm font-medium text-center shadow-sm">
-                                {status || 'Error placeholder'}
-                            </div>
-                        </div>
-
-                        {/* Button */}
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            className="group w-full h-12 mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-sm font-bold text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-[1.02] hover:shadow-blue-500/40 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] disabled:scale-100 disabled:opacity-70 disabled:cursor-not-allowed"
-                        >
-                            {submitting 
-                                ? 'Authenticating...' 
-                                : loginType === 'student' ? 'Access Student Portal' : 'Open Admin Console'
-                            }
-                            {!submitting && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
-                        </button>
-                    </form>
-
-                    {/* Trust Elements */}
-                    <div className="pt-5 mt-2 border-t border-gray-100 flex items-center justify-center gap-4 text-[11px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider w-full">
-                        <div className="flex items-center gap-1.5">
-                            <ShieldCheck size={14} className="text-emerald-500" />
-                            Secure Login
-                        </div>
-                        <div className="w-1 h-1 rounded-full bg-gray-300"></div>
-                        <div className="flex items-center gap-1.5">
-                            <Cpu size={14} className="text-blue-500" />
-                            AI Powered
-                        </div>
-                    </div>
-                </div>
-
-                {/* Footer Copyright */}
-                <div className="mt-8 text-center text-[11px] sm:text-xs text-gray-400 font-medium">
-                    &copy; {new Date().getFullYear()} Attendify OS. All rights reserved.
-                </div>
+  return (
+    <div className="min-h-screen bg-[linear-gradient(180deg,#f5fbff_0%,#edf7fb_42%,#eef2fa_100%)] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-[40px] border border-white/80 bg-white/80 shadow-[0_40px_120px_rgba(15,23,42,0.12)] backdrop-blur-xl lg:grid-cols-[1.05fr,0.95fr]">
+        <section className="relative overflow-hidden bg-[linear-gradient(140deg,#0f172a_0%,#164e63_50%,#0f766e_100%)] px-6 py-8 text-white sm:px-10 sm:py-10">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.2),transparent_34%)]" />
+          <div className="relative flex h-full flex-col justify-between">
+            <div>
+              <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold text-cyan-100">
+                <ShieldCheck size={16} />
+                Attendance OS
+              </div>
+              <h1 className="mt-6 max-w-lg text-4xl font-semibold tracking-tight sm:text-5xl">
+                Professional face-recognition attendance for campus operations
+              </h1>
+              <p className="mt-5 max-w-xl text-sm leading-7 text-slate-200/85 sm:text-base">
+                Manage student check-ins, live kiosk scans, attendance reports, and schedule controls from a single streamlined workspace.
+              </p>
             </div>
-        </div>
-    );
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <FeatureCard title="Instant marking" description="Recognized faces are saved immediately without a manual review queue." icon={<Cpu size={18} />} />
+              <FeatureCard title="Repeat scans" description="Attendance can be captured again after the short cooldown gap." icon={<Shield size={18} />} />
+              <FeatureCard title="Cleaner UX" description="Student, admin, kiosk, and reports now share one polished interface." icon={<User size={18} />} />
+            </div>
+          </div>
+        </section>
+
+        <section className="flex items-center justify-center px-6 py-8 sm:px-10 sm:py-10">
+          <div className="w-full max-w-md">
+            <div className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-700">Secure access</div>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Sign in to continue</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-500">
+              Choose student or admin access and continue into the attendance workspace.
+            </p>
+
+            <div className="mt-6 flex rounded-full bg-slate-100 p-1">
+              <button
+                type="button"
+                onClick={() => { setLoginType('student'); setStatus(''); }}
+                className={`flex-1 rounded-full px-4 py-3 text-sm font-semibold transition ${
+                  loginType === 'student'
+                    ? 'bg-white text-slate-950 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Student Access
+              </button>
+              <button
+                type="button"
+                onClick={() => { setLoginType('institution'); setStatus(''); }}
+                className={`flex-1 rounded-full px-4 py-3 text-sm font-semibold transition ${
+                  loginType === 'institution'
+                    ? 'bg-white text-slate-950 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Admin Access
+              </button>
+            </div>
+
+            <form onSubmit={handleLogin} className="mt-6 space-y-5">
+              {loginType === 'student' ? (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Registration Number</label>
+                  <InputShell icon={<Hash size={18} className="text-slate-400" />}>
+                    <input
+                      type="text"
+                      placeholder="Enter your student register number"
+                      value={studentRegisterNumber}
+                      onChange={(event) => setStudentRegisterNumber(event.target.value)}
+                      required
+                      className="h-12 w-full bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400"
+                    />
+                  </InputShell>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Email or Username</label>
+                    <InputShell icon={<Mail size={18} className="text-slate-400" />}>
+                      <input
+                        type="text"
+                        placeholder="Admin account"
+                        value={institutionForm.username}
+                        onChange={(event) => setInstitutionForm((prev) => ({ ...prev, username: event.target.value }))}
+                        required
+                        className="h-12 w-full bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400"
+                      />
+                    </InputShell>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700">Password</label>
+                    <InputShell icon={<KeyRound size={18} className="text-slate-400" />}>
+                      <input
+                        type="password"
+                        placeholder="Enter password"
+                        value={institutionForm.password}
+                        onChange={(event) => setInstitutionForm((prev) => ({ ...prev, password: event.target.value }))}
+                        required
+                        className="h-12 w-full bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400"
+                      />
+                    </InputShell>
+                  </div>
+                </div>
+              )}
+
+              {status ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {status}
+                </div>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-lg shadow-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {submitting
+                  ? 'Authenticating...'
+                  : loginType === 'student'
+                    ? 'Open Student Portal'
+                    : 'Open Admin Workspace'}
+                {!submitting ? <ArrowRight size={18} className="transition group-hover:translate-x-0.5" /> : null}
+              </button>
+            </form>
+
+            <div className="mt-8 flex items-center gap-3 rounded-[28px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+              <ShieldCheck size={18} className="text-emerald-600" />
+              Session tokens are protected on the backend and recognition runs through the configured attendance API.
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function FeatureCard({ title, description, icon }: { title: string; description: string; icon: React.ReactNode }) {
+  return (
+    <div className="rounded-[28px] border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
+      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-cyan-100">
+        {icon}
+      </div>
+      <div className="mt-4 font-semibold text-white">{title}</div>
+      <div className="mt-2 text-sm leading-6 text-slate-200/75">{description}</div>
+    </div>
+  );
+}
+
+function InputShell({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 shadow-sm">
+      <div className="shrink-0">
+        {icon}
+      </div>
+      {children}
+    </div>
+  );
 }

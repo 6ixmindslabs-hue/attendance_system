@@ -7,11 +7,8 @@ import {
     getAttendanceSettings,
     getAttendanceWindow,
     getLocalDayOfWeek,
-    getLocalDateBounds
 } from '../services/attendanceSettingsService.js';
 import { isHoliday } from '../services/calendarService.js';
-import { uploadReviewImage } from '../services/storageService.js';
-import { findOpenReviewForStudent, REVIEW_STATUS } from '../services/reviewService.js';
 
 const router = express.Router();
 const REJECTION_STATUS_MAP = {
@@ -26,6 +23,7 @@ const REJECTION_STATUS_MAP = {
 };
 
 const CONSENSUS_WINDOW_MS = 5 * 1000;
+const REQUIRED_CONSENSUS_FRAMES = 1;
 const terminalConsensus = new Map();
 const terminalCooldowns = new Map();
 const terminalProcessing = new Set();
@@ -64,75 +62,6 @@ const resolveValidatedSessionId = async (sessionId) => {
     }
 
     return session?.id || null;
-};
-
-const getAttendanceDayBounds = (timestamp = new Date()) => {
-    const { start, end } = getLocalDateBounds(timestamp);
-    return {
-        startIso: start.toISOString(),
-        endIso: end.toISOString()
-    };
-};
-
-const findExistingAttendance = async ({ studentId, period, startIso, endIso }) => {
-    const { data, error } = await supabase
-        .from('attendance')
-        .select('id')
-        .eq('student_id', studentId)
-        .eq('period', period)
-        .gte('timestamp', startIso)
-        .lte('timestamp', endIso)
-        .maybeSingle();
-
-    if (error) {
-        throw new Error(error.message);
-    }
-
-    return data || null;
-};
-
-const createReviewRecord = async ({
-    imageBase64,
-    terminalId,
-    period,
-    candidateStudentId,
-    confidence
-}) => {
-    let bucketName = null;
-    let imagePath = null;
-
-    try {
-        const upload = await uploadReviewImage({
-            terminalId,
-            period,
-            base64Image: imageBase64
-        });
-
-        bucketName = upload?.bucketName || null;
-        imagePath = upload?.imagePath || null;
-    } catch (uploadError) {
-        console.error('Review image upload skipped:', uploadError.message);
-    }
-
-    const { data, error } = await supabase
-        .from('recognition_reviews')
-        .insert([{
-            bucket_name: bucketName,
-            image_path: imagePath,
-            terminal_id: terminalId,
-            period,
-            candidate_student_id: candidateStudentId,
-            confidence,
-            status: REVIEW_STATUS.PENDING
-        }])
-        .select('id')
-        .single();
-
-    if (error) {
-        throw new Error(error.message);
-    }
-
-    return data?.id || null;
 };
 
 router.post('/', async (req, res) => {
@@ -193,13 +122,15 @@ router.post('/', async (req, res) => {
 
         const validatedSessionId = await resolveValidatedSessionId(sessionId);
         const aiResponse = await recognizeFace(imageBase64, terminalId, enforceGuide);
-        const forceReview = aiResponse.status === 'ambiguous';
         const activePeriodLabel = formatAttendancePeriodLabel(activeAttendanceWindow.period);
+        const isCandidateMatch = aiResponse.status === 'recognized';
 
-        if ((aiResponse.status !== 'recognized' && !forceReview) || !aiResponse.student_id) {
+        if (!isCandidateMatch || !aiResponse.student_id) {
             clearTerminalConsensus(terminalId);
             return res.json({
-                message: aiResponse.message || 'Face not recognized',
+                message: aiResponse.status === 'ambiguous'
+                    ? 'Match is not distinct enough. Please face the camera clearly and try again.'
+                    : aiResponse.message || 'Face not recognized',
                 status: REJECTION_STATUS_MAP[aiResponse.status] || 'Unknown',
                 details: aiResponse.reason || null
             });
@@ -207,10 +138,10 @@ router.post('/', async (req, res) => {
 
         const confidence = Number(aiResponse.confidence || 0);
 
-        if (!forceReview && confidence < settings.review_threshold) {
+        if (confidence < settings.auto_accept_threshold) {
             clearTerminalConsensus(terminalId);
             return res.json({
-                message: 'Not recognized with enough confidence.',
+                message: 'Recognition confidence is too low. Please face the camera clearly and try again.',
                 status: 'Unknown',
                 confidence
             });
@@ -237,23 +168,15 @@ router.post('/', async (req, res) => {
             : {
                 ...existingConsensus,
                 confidence: Math.max(existingConsensus.confidence, confidence),
-                forceReview: existingConsensus.forceReview || forceReview,
                 frames: existingConsensus.frames + 1,
                 lastSeenAt: nowMs
-            };
-
-        if (!existingConsensus ||
-            existingConsensus.candidateKey !== candidateKey ||
-            nowMs - existingConsensus.startedAt > CONSENSUS_WINDOW_MS ||
-            nowMs - existingConsensus.lastSeenAt > CONSENSUS_WINDOW_MS) {
-            nextConsensus.forceReview = forceReview;
-        }
+        };
 
         terminalConsensus.set(terminalId, nextConsensus);
 
-        if (nextConsensus.frames < settings.consensus_frames) {
+        if (nextConsensus.frames < REQUIRED_CONSENSUS_FRAMES) {
             return res.status(202).json({
-                message: `Hold steady for confirmation (${nextConsensus.frames}/${settings.consensus_frames})`,
+                message: `Hold steady for confirmation (${nextConsensus.frames}/${REQUIRED_CONSENSUS_FRAMES})`,
                 student: aiResponse.name,
                 confidence,
                 status: 'Pending'
@@ -266,80 +189,37 @@ router.post('/', async (req, res) => {
         const cooldownUntil = terminalCooldowns.get(cooldownKey) || 0;
 
         if (cooldownUntil > nowMs) {
+            const remainingSeconds = Math.max(1, Math.ceil((cooldownUntil - nowMs) / 1000));
             return res.json({
-                message: `${activePeriodLabel} recognition was already processed recently for this terminal.`,
+                message: `${activePeriodLabel} attendance was just captured. Please wait ${remainingSeconds}s and scan again.`,
                 student: aiResponse.name,
                 confidence,
-                status: 'Duplicate'
+                status: 'Recent'
             });
         }
-
-        const { startIso, endIso } = getAttendanceDayBounds(requestNow);
-        const existingAttendance = await findExistingAttendance({
-            studentId: aiResponse.student_id,
-            period: activeAttendanceWindow.period,
-            startIso,
-            endIso
-        });
 
         terminalCooldowns.set(cooldownKey, nowMs + (settings.cooldown_seconds * 1000));
-
-        if (existingAttendance) {
-            return res.json({
-                message: `${activePeriodLabel} attendance already marked for today.`,
-                student: aiResponse.name,
+        const { error: insertError } = await supabase
+            .from('attendance')
+            .insert([{
+                student_id: aiResponse.student_id,
+                session_id: validatedSessionId,
+                status: 'Present',
+                period: activeAttendanceWindow.period,
+                source: 'face_auto',
                 confidence,
-                status: 'Duplicate'
-            });
+                timestamp: requestNow.toISOString()
+            }]);
+
+        if (insertError) {
+            throw new Error(insertError.message);
         }
-
-        if (!nextConsensus.forceReview && confidence >= settings.auto_accept_threshold) {
-            const { error: insertError } = await supabase
-                .from('attendance')
-                .insert([{
-                    student_id: aiResponse.student_id,
-                    session_id: validatedSessionId,
-                    status: 'Present',
-                    period: activeAttendanceWindow.period,
-                    source: 'face_auto',
-                    confidence,
-                    timestamp: requestNow.toISOString()
-                }]);
-
-            if (insertError) {
-                throw new Error(insertError.message);
-            }
-
-            return res.json({
-                message: `${activePeriodLabel} attendance marked successfully.`,
-                student: aiResponse.name,
-                confidence,
-                status: 'Success'
-            });
-        }
-
-        const existingReview = await findOpenReviewForStudent({
-            studentId: aiResponse.student_id,
-            period: activeAttendanceWindow.period,
-            fromTimestamp: startIso
-        });
-
-        const reviewId = existingReview?.id || await createReviewRecord({
-            imageBase64,
-            terminalId,
-            period: activeAttendanceWindow.period,
-            candidateStudentId: aiResponse.student_id,
-            confidence
-        });
 
         return res.json({
-            message: nextConsensus.forceReview
-                ? `${activePeriodLabel} recognition is too close to another student and was sent for admin review.`
-                : `${activePeriodLabel} recognition was sent for admin review.`,
+            message: `${activePeriodLabel} attendance marked successfully.`,
             student: aiResponse.name,
             confidence,
-            reviewId,
-            status: 'ReviewRequired'
+            status: 'Success'
         });
     } catch (error) {
         console.error('Recognition error:', error);
