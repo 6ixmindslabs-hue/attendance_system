@@ -21,9 +21,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code
 COPY . .
 
+# Pre-download the face recognition models into the image
+RUN python download_models.py
+
 # Hugging Face Spaces expects the app to run on port 7860
 EXPOSE 7860
 
 # Run the FastAPI app using uvicorn
 # We use port 7860 as required by Hugging Face Spaces
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "7860"]
