@@ -31,7 +31,7 @@ export default function AttendanceKiosk() {
   const webcamRef = useRef<Webcam>(null);
   const [recognitionState, setRecognitionState] = useState<RecognitionState>('IDLE');
   const [result, setResult] = useState<RecognitionLog | null>(null);
-  const [isCapturing, setIsCapturing] = useState(true);
+  const [isCapturing] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Update clock every second
