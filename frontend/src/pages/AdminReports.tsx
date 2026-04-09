@@ -237,219 +237,252 @@ const AdminReports: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <section className="overflow-hidden rounded-[36px] border border-white/70 bg-white/90 shadow-xl shadow-slate-200/60 backdrop-blur">
-        <div className="bg-[linear-gradient(135deg,#0f172a_0%,#164e63_45%,#0f766e_100%)] px-6 py-7 text-white sm:px-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/80">Attendance Reports</div>
-              <h2 className="mt-2 flex items-center gap-3 text-3xl font-semibold tracking-tight">
-                <Calendar className="text-cyan-200" />
-                Attendance records and exports
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-slate-200/85">
-                Filter attendance by department, year, semester, and date range. Recognition now saves instantly, so this page focuses on records, exports, and follow-up actions.
-              </p>
-            </div>
+      {/* Header with Actions */}
+      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between border-b border-gray-200 pb-8">
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 mb-2">Institutional Analytics</div>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Attendance Database</h2>
+          <p className="mt-2 text-sm text-gray-500">
+            Comprehensive audit logs and historical biometric records.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={exportToExcel}
+            disabled={reportsLoading || attendanceData.length === 0}
+            className="h-10 px-5 inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          >
+            <Download size={16} /> Export CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => void fetchReports(filters)}
+            className="h-10 px-5 inline-flex items-center justify-center gap-2 rounded-md bg-indigo-600 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+          >
+            <RefreshCcw size={16} /> Sync
+          </button>
+        </div>
+      </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={exportToExcel}
-                disabled={reportsLoading || attendanceData.length === 0}
-                className="inline-flex items-center gap-2 rounded-2xl bg-cyan-400 px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-cyan-300 disabled:opacity-50"
-              >
-                <Download size={16} />
-                Export Excel
-              </button>
-              <button
-                type="button"
-                onClick={() => void fetchReports(filters)}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white hover:bg-white/15"
-              >
-                <RefreshCcw size={16} />
-                Refresh
-              </button>
-            </div>
-          </div>
+      {/* Filter Section */}
+      <section className="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
+          <Filter className="text-gray-400" size={16} />
+          <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-900">Query Parameters</h3>
         </div>
 
-        <div className="space-y-6 p-6 sm:p-8">
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (filters.fromDate && filters.toDate && filters.fromDate > filters.toDate) {
-                setError('From date cannot be later than to date.');
-                return;
-              }
-              void fetchReports(filters);
-            }}
-            className="rounded-[28px] border border-slate-200 bg-slate-50 p-5"
-          >
-            <div className="mb-4 flex items-center gap-2">
-              <Filter className="text-cyan-700" size={18} />
-              <h3 className="text-lg font-semibold text-slate-900">Filter records</h3>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (filters.fromDate && filters.toDate && filters.fromDate > filters.toDate) {
+              setError('Temporal range error: Start date exceeds end date.');
+              return;
+            }
+            void fetchReports(filters);
+          }}
+          className="p-6 space-y-6"
+        >
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Department</label>
+              <select
+                name="departmentId"
+                value={filters.departmentId}
+                onChange={handleFilterChange}
+                className="block w-full h-10 border border-gray-200 rounded bg-white text-sm px-3 focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+              >
+                <option value="">All Departments</option>
+                {departments.map((dept) => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
+              </select>
             </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Department</label>
-                <select name="departmentId" value={filters.departmentId} onChange={handleFilterChange} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-900">
-                  <option value="">All Departments</option>
-                  {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Year</label>
-                <select name="year" value={filters.year} onChange={handleFilterChange} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-900">
-                  <option value="">All Years</option>
-                  {YEAR_OPTIONS.map((year) => <option key={year} value={year}>Year {year}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Semester</label>
-                <select name="semester" value={filters.semester} onChange={handleFilterChange} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-900">
-                  <option value="">All Semesters</option>
-                  {SEMESTER_OPTIONS.map((semester) => <option key={semester} value={semester}>Semester {semester}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">From Date</label>
-                <input name="fromDate" type="date" value={filters.fromDate} onChange={handleFilterChange} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-900" />
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">To Date</label>
-                <input name="toDate" type="date" value={filters.toDate} onChange={handleFilterChange} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-900" />
-              </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Year</label>
+              <select
+                name="year"
+                value={filters.year}
+                onChange={handleFilterChange}
+                className="block w-full h-10 border border-gray-200 rounded bg-white text-sm px-3 focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+              >
+                <option value="">All Years</option>
+                {YEAR_OPTIONS.map((y) => <option key={y} value={y}>Year {y}</option>)}
+              </select>
             </div>
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button type="submit" className="rounded-2xl bg-slate-950 px-5 py-3 font-semibold text-white hover:bg-slate-800">Apply Filters</button>
-              <button type="button" onClick={() => { setFilters(defaultFilters); void fetchReports(defaultFilters); }} className="rounded-2xl bg-white px-5 py-3 font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50">Reset</button>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Semester</label>
+              <select
+                name="semester"
+                value={filters.semester}
+                onChange={handleFilterChange}
+                className="block w-full h-10 border border-gray-200 rounded bg-white text-sm px-3 focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+              >
+                <option value="">All Semesters</option>
+                {SEMESTER_OPTIONS.map((s) => <option key={s} value={s}>Semester {s}</option>)}
+              </select>
             </div>
-          </form>
-
-          {(error || status) ? (
-            <div className={`rounded-2xl border px-4 py-3 text-sm ${error ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-cyan-200 bg-cyan-50 text-cyan-800'}`}>
-              {error || status}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">From</label>
+              <input
+                name="fromDate"
+                type="date"
+                value={filters.fromDate}
+                onChange={handleFilterChange}
+                className="block w-full h-10 border border-gray-200 rounded bg-white text-sm px-3 focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+              />
             </div>
-          ) : null}
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <MetricCard label="Present" value={stats.present} icon={<CheckCircle className="text-emerald-700" size={20} />} />
-            <MetricCard label="Absent" value={stats.absent} icon={<AlertCircle className="text-rose-700" size={20} />} />
-            <MetricCard label="Late" value={stats.late} icon={<AlertCircle className="text-amber-700" size={20} />} />
-            <MetricCard label="On Duty" value={stats.onDuty} icon={<UserCheck className="text-sky-700" size={20} />} />
-            <MetricCard label="Filtered Records" value={stats.total} icon={<Calendar className="text-cyan-700" size={20} />} />
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">To</label>
+              <input
+                name="toDate"
+                type="date"
+                value={filters.toDate}
+                onChange={handleFilterChange}
+                className="block w-full h-10 border border-gray-200 rounded bg-white text-sm px-3 focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+              />
+            </div>
           </div>
 
-          <section className="overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-              <h3 className="text-xl font-semibold text-slate-900">Attendance table</h3>
-              <p className="mt-1 text-sm text-slate-500">
-                Repeated scans are shown as separate records whenever the kiosk cooldown has passed.
-              </p>
-            </div>
+          <div className="flex gap-2 pt-2 border-t border-gray-100">
+            <button
+              type="submit"
+              className="h-9 px-6 rounded bg-gray-900 text-xs font-bold uppercase tracking-widest text-white hover:bg-black transition-colors"
+            >
+              Apply Filter
+            </button>
+            <button
+              type="button"
+              onClick={() => { setFilters(defaultFilters); void fetchReports(defaultFilters); }}
+              className="h-9 px-6 rounded border border-gray-200 bg-white text-xs font-bold uppercase tracking-widest text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        </form>
+      </section>
 
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1300px] text-left">
-                <thead className="border-b bg-white">
-                  <tr>
-                    <th className="p-4 font-semibold text-slate-600">Student Name</th>
-                    <th className="p-4 font-semibold text-slate-600">Register No</th>
-                    <th className="p-4 font-semibold text-slate-600">Department</th>
-                    <th className="p-4 font-semibold text-slate-600">Year</th>
-                    <th className="p-4 font-semibold text-slate-600">Semester</th>
-                    <th className="p-4 font-semibold text-slate-600">Date & Time</th>
-                    <th className="p-4 font-semibold text-slate-600">Period</th>
-                    <th className="p-4 font-semibold text-slate-600">Status</th>
-                    <th className="p-4 font-semibold text-slate-600">Source</th>
-                    <th className="p-4 font-semibold text-slate-600">Confidence</th>
-                    <th className="p-4 font-semibold text-slate-600">Notes</th>
-                    <th className="p-4 font-semibold text-slate-600">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reportsLoading || loading ? (
-                    <tr><td colSpan={12} className="p-10 text-center text-slate-400 italic">Loading attendance data...</td></tr>
-                  ) : attendanceData.length === 0 ? (
-                    <tr><td colSpan={12} className="p-10 text-center text-slate-400 italic">No attendance records found for the selected filters.</td></tr>
-                  ) : attendanceData.map((record) => (
-                    <tr key={record.id} className="align-top border-b border-slate-100 transition hover:bg-slate-50/70">
-                      <td className="p-4 font-medium text-slate-900">{record.students?.name || 'N/A'}</td>
-                      <td className="p-4 text-slate-600">{record.students?.register_number || 'N/A'}</td>
-                      <td className="p-4 text-slate-600">{record.students?.department_name || 'N/A'}</td>
-                      <td className="p-4 text-slate-600">{record.students?.year || 'N/A'}</td>
-                      <td className="p-4 text-slate-600">{record.students?.semester || 'N/A'}</td>
-                      <td className="p-4 text-slate-500">
-                        {new Date(record.timestamp).toLocaleDateString()}
-                        <br />
-                        {new Date(record.timestamp).toLocaleTimeString()}
-                      </td>
-                      <td className="p-4 text-slate-600">{record.sessions?.subject || formatPeriodLabel(record.period)}</td>
-                      <td className="p-4">
-                        <div className="flex flex-col items-start gap-2">
-                          <span className={`rounded-full px-2 py-1 text-xs font-bold ${STATUS_BADGE_CLASSES[record.status] || 'bg-slate-100 text-slate-700'}`}>{record.status}</span>
-                          {(record.status === 'Absent' || record.status === 'On Duty') && record.period ? (
-                            <button
-                              type="button"
-                              onClick={() => void toggleOnDutyStatus(record)}
-                              disabled={actionKey === `status-${record.id}`}
-                              className={`inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold transition disabled:opacity-50 ${
-                                record.status === 'Absent'
-                                  ? 'bg-sky-50 text-sky-700 hover:bg-sky-100'
-                                  : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-                              }`}
-                            >
-                              {actionKey === `status-${record.id}`
-                                ? 'Saving...'
-                                : record.status === 'Absent'
-                                  ? 'Mark On Duty'
-                                  : 'Mark Absent'}
-                            </button>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="p-4 text-slate-600">{formatSource(record.source)}</td>
-                      <td className="p-4 text-slate-600">{formatConfidence(record.confidence)}</td>
-                      <td className="max-w-[220px] whitespace-pre-wrap p-4 text-slate-500">{record.notes || '-'}</td>
-                      <td className="p-4">
-                        {record.status === 'Absent' ? (
-                          <button
-                            type="button"
-                            onClick={() => void sendAlert(record)}
-                            disabled={actionKey === `alert-${record.id}`}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-100 disabled:opacity-50"
-                          >
-                            <PhoneCall size={14} /> {actionKey === `alert-${record.id}` ? 'Sending...' : 'Send Alert'}
-                          </button>
-                        ) : (
-                          <span className="font-medium text-slate-400">-</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+      {(error || status) && (
+        <div className={`rounded border p-4 text-xs font-medium flex items-center gap-3 ${error ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+          <AlertCircle size={14} className="shrink-0" />
+          {error || status}
+        </div>
+      )}
+
+      {/* Summary Metrics */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+        <MetricCard label="Present" value={stats.present} colorClass="text-emerald-600" />
+        <MetricCard label="Absent" value={stats.absent} colorClass="text-red-600" />
+        <MetricCard label="Late" value={stats.late} colorClass="text-amber-600" />
+        <MetricCard label="On Duty" value={stats.onDuty} colorClass="text-indigo-600" />
+        <MetricCard label="Total Registry" value={stats.total} colorClass="text-gray-900" />
+      </div>
+
+      {/* Table Section */}
+      <section className="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-2">
+             <Calendar className="text-gray-400" size={16} />
+             <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-900">Attendance Register</h3>
+          </div>
+          <span className="text-[10px] font-bold text-gray-400 uppercase tabular-nums">Registry Size: {attendanceData.length} entries</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-50/50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Student Identity</th>
+                <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Academic Details</th>
+                <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Temporal Data</th>
+                <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Status</th>
+                <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Biometric Auth</th>
+                <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Operation</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {reportsLoading || loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-20 text-center text-xs font-medium text-gray-400 uppercase tracking-widest italic">
+                    Synchronizing database...
+                  </td>
+                </tr>
+              ) : attendanceData.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-20 text-center text-xs font-medium text-gray-300 uppercase tracking-widest italic">
+                    No matching records established.
+                  </td>
+                </tr>
+              ) : attendanceData.map((record) => (
+                <tr key={record.id} className="hover:bg-gray-50/50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-bold text-gray-900">{record.students?.name || 'ERR_IDENTITY'}</div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">{record.students?.department_name || 'N/A'}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-xs font-semibold text-gray-600 group-hover:text-indigo-600 transition-colors">{record.students?.register_number || 'REG_NONE'}</div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase mt-0.5">Y{record.students?.year} / S{record.students?.semester}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-xs font-bold text-gray-800">{new Date(record.timestamp).toLocaleDateString()}</div>
+                    <div className="text-[10px] font-mono text-indigo-600 font-bold uppercase mt-0.5">
+                       {new Date(record.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {record.sessions?.subject || formatPeriodLabel(record.period)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-2">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-tighter ${
+                        record.status === 'Present' ? 'bg-emerald-50 text-emerald-700' :
+                        record.status === 'Absent' ? 'bg-red-50 text-red-700' :
+                        record.status === 'Late' ? 'bg-amber-50 text-amber-700' :
+                        'bg-indigo-50 text-indigo-700'
+                      }`}>
+                        {record.status}
+                      </span>
+                      {(record.status === 'Absent' || record.status === 'On Duty') && record.period && (
+                        <button
+                          type="button"
+                          onClick={() => void toggleOnDutyStatus(record)}
+                          disabled={actionKey === `status-${record.id}`}
+                          className="text-[9px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 disabled:opacity-50 text-left"
+                        >
+                          {actionKey === `status-${record.id}` ? '...' : record.status === 'Absent' ? 'Mark-OD' : 'Mark-Abs'}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{formatSource(record.source)}</div>
+                    <div className="text-[10px] font-mono text-gray-400 mt-1">CONF: {formatConfidence(record.confidence)}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    {record.status === 'Absent' ? (
+                      <button
+                        type="button"
+                        onClick={() => void sendAlert(record)}
+                        disabled={actionKey === `alert-${record.id}`}
+                        className="inline-flex items-center gap-2 h-8 px-3 rounded border border-red-200 text-red-600 text-[10px] font-bold uppercase tracking-widest hover:bg-red-50 disabled:opacity-50 transition-colors"
+                      >
+                        <PhoneCall size={12} />
+                        {actionKey === `alert-${record.id}` ? 'SENDING' : 'ALERT_PARENT'}
+                      </button>
+                    ) : (
+                      <CheckCircle size={16} className="text-gray-200" />
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
     </div>
   );
 };
 
-function MetricCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+function MetricCard({ label, value, colorClass }: { label: string; value: number; colorClass: string }) {
   return (
-    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-medium text-slate-500">{label}</div>
-          <div className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{value}</div>
-        </div>
-        <div className="rounded-2xl bg-slate-50 p-3">
-          {icon}
-        </div>
-      </div>
+    <div className="bg-white border border-gray-200 p-5 rounded-md shadow-sm">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 leading-none">{label}</div>
+      <div className={`text-2xl font-bold tabular-nums tracking-tight ${colorClass}`}>{value}</div>
     </div>
   );
 }

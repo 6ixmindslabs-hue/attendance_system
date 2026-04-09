@@ -41,11 +41,16 @@ function PublicOnlyRoute({ children }: { children: ReactNode }) {
 
 function AppLoadingScreen() {
   return (
-    <div className="flex min-h-screen items-center justify-center px-6">
-      <div className="w-full max-w-md rounded-[32px] border border-white/70 bg-white/85 p-8 text-center shadow-2xl shadow-slate-200/60 backdrop-blur">
-        <div className="text-xs font-black uppercase tracking-[0.28em] text-teal-700">Attendance OS</div>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-950">Loading workspace</h1>
-        <p className="mt-3 text-sm text-slate-600">Preparing secure attendance operations and live recognition tools.</p>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50/50 px-6 font-sans">
+      <div className="w-full max-w-sm rounded-md border border-gray-200 bg-white p-12 text-center shadow-sm">
+        <div className="inline-flex items-center gap-2 mb-6">
+           <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-ping" />
+           <div className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Registry System</div>
+        </div>
+        <h1 className="text-xl font-bold tracking-tight text-gray-900">Synchronizing...</h1>
+        <p className="mt-3 text-xs font-medium text-gray-500 leading-relaxed uppercase tracking-widest opacity-60">
+          Establishing secure institutional baseline
+        </p>
       </div>
     </div>
   );

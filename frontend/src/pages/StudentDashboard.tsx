@@ -231,215 +231,145 @@ const StudentDashboard: React.FC = () => {
     }
 
     return (
-        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-            <div className="space-y-6">
-                <div className="overflow-hidden rounded-[32px] border border-white/70 bg-white/85 shadow-2xl shadow-slate-200/60 backdrop-blur">
-                    <div className="bg-[radial-gradient(circle_at_top_left,rgba(20,184,166,0.18),transparent_32%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.18),transparent_28%)] px-6 py-8 sm:px-8">
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                            <div>
-                                <div className="text-xs font-black uppercase tracking-[0.24em] text-teal-700">Student Workspace</div>
-                                <h2 className="mt-3 text-4xl font-black tracking-tight text-slate-950">Attendance Dashboard</h2>
-                                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
-                                    Review your attendance health, check today&apos;s status, and export your report whenever you need it.
-                                </p>
-                            </div>
-                            <button
-                                onClick={signOut}
-                                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-300 transition hover:bg-slate-900"
-                            >
-                                <LogOut size={16} /> Sign Out
-                            </button>
-                        </div>
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+            <div className="space-y-8">
+                {/* Dashboard Header */}
+                <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between border-b border-gray-200 pb-8">
+                    <div>
+                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 mb-2">Student Portal</div>
+                        <h2 className="text-2xl font-bold tracking-tight text-gray-900">Personal Attendance Dashboard</h2>
+                        <p className="mt-2 text-sm text-gray-500">
+                            Centralized view of your academic presence and institutional records.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={signOut}
+                            className="h-10 px-5 inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                            <LogOut size={16} /> Sign Out
+                        </button>
                     </div>
                 </div>
 
                 {error && (
-                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 shadow-sm">
+                    <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                         {error}
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <div className="rounded-[32px] border border-white/70 bg-white/85 p-6 shadow-xl shadow-slate-200/50 backdrop-blur lg:col-span-2">
-                        <div className="mb-4 flex items-center gap-2">
-                            <UserSquare2 className="text-blue-600" size={20} />
-                            <h3 className="text-xl font-semibold">My Profile</h3>
-                        </div>
-                        <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
-                            <div className="rounded-2xl bg-blue-50 p-4">
-                                <p className="text-gray-500">Name</p>
-                                <p className="font-semibold text-blue-900">{student.name || 'N/A'}</p>
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
+                    {/* Profile Information */}
+                    <div className="lg:col-span-3">
+                        <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+                            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
+                                <UserSquare2 className="text-gray-400" size={18} />
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900">Identity Profile</h3>
                             </div>
-                            <div className="rounded-2xl bg-blue-50 p-4">
-                                <p className="text-gray-500">Register Number</p>
-                                <p className="font-semibold text-blue-900">{student.register_number || 'N/A'}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-gray-200">
+                                <ProfileItem label="Full Name" value={student.name} />
+                                <ProfileItem label="Registry ID" value={student.register_number} highlight />
+                                <ProfileItem label="Academic Dept" value={student.department_name} />
+                                <ProfileItem label="Year / Semester" value={`${student.year || 'N/A'} / ${student.semester || 'N/A'}`} />
+                                <ProfileItem label="Date of Birth" value={student.dob} />
+                                <ProfileItem label="Blood Group" value={student.blood_group} />
                             </div>
-                            <div className="rounded-2xl bg-blue-50 p-4">
-                                <p className="text-gray-500">Department</p>
-                                <p className="font-semibold text-blue-900">{student.department_name || 'N/A'}</p>
-                            </div>
-                            <div className="rounded-2xl bg-blue-50 p-4">
-                                <p className="text-gray-500">Year / Semester</p>
-                                <p className="font-semibold text-blue-900">
-                                    {student.year || 'N/A'} / {student.semester || 'N/A'}
-                                </p>
-                            </div>
-                            <div className="rounded-2xl bg-blue-50 p-4">
-                                <p className="text-gray-500">DOB</p>
-                                <p className="font-semibold text-blue-900">{student.dob || 'N/A'}</p>
-                            </div>
-                            <div className="rounded-2xl bg-blue-50 p-4">
-                                <p className="text-gray-500">Blood Group</p>
-                                <p className="font-semibold text-blue-900">{student.blood_group || 'N/A'}</p>
-                            </div>
-                            <div className="rounded-2xl bg-blue-50 p-4 md:col-span-2">
-                                <p className="text-gray-500">Address</p>
-                                <p className="font-semibold text-blue-900">{student.address || 'N/A'}</p>
+                            <div className="p-6 border-t border-gray-100">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Residential Registry</p>
+                                <p className="text-sm text-gray-700 leading-relaxed">{student.address || 'No address on file'}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="rounded-[32px] border border-white/70 bg-white/85 p-6 shadow-xl shadow-slate-200/50 backdrop-blur">
-                        <div className="mb-4 flex items-center gap-2">
-                            <CalendarDays className="text-emerald-600" size={20} />
-                            <h3 className="text-xl font-semibold">Today Status</h3>
+                    {/* Today's Summary */}
+                    <div className="bg-white border border-gray-200 rounded-md overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
+                            <CalendarDays className="text-gray-400" size={18} />
+                            <h3 className="text-sm font-bold uppercase tracking-wider text-gray-900">Daily Status</h3>
                         </div>
-
-                        <div className="space-y-3">
-                            <div className="rounded-2xl border border-slate-200 p-4">
-                                <p className="mb-1 text-sm text-gray-500">Morning</p>
-                                <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClasses[todayAttendance.morningStatus] || statusBadgeClasses.Pending}`}>
-                                    {todayAttendance.morningStatus}
-                                </span>
-                            </div>
-
-                            <div className="rounded-2xl border border-slate-200 p-4">
-                                <p className="mb-1 text-sm text-gray-500">Afternoon</p>
-                                <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClasses[todayAttendance.afternoonStatus] || statusBadgeClasses.Pending}`}>
-                                    {todayAttendance.afternoonStatus}
-                                </span>
-                            </div>
-
-                            <div className="rounded-2xl border border-slate-200 p-4">
-                                <p className="mb-1 text-sm text-gray-500">Last Marked</p>
-                                <p className="font-semibold text-gray-800">
+                        <div className="p-6 space-y-4">
+                            <StatusItem label="Morning Session" status={todayAttendance.morningStatus} />
+                            <StatusItem label="Afternoon Session" status={todayAttendance.afternoonStatus} />
+                            <div className="pt-4 border-t border-gray-100">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Last Sync</p>
+                                <p className="text-xs font-medium text-gray-600">
                                     {todayAttendance.lastMarkedAt
-                                        ? `${new Date(todayAttendance.lastMarkedAt).toLocaleDateString()} ${new Date(todayAttendance.lastMarkedAt).toLocaleTimeString()}`
-                                        : 'No attendance marked yet'}
+                                        ? `${new Date(todayAttendance.lastMarkedAt).toLocaleTimeString()}`
+                                        : 'No activity detected'}
                                 </p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
-                    <div className="rounded-[28px] border border-white/70 bg-white/85 p-5 shadow-lg shadow-slate-200/50 backdrop-blur">
-                        <div className="mb-2 flex items-center gap-3">
-                            <CheckCircle2 className="text-green-600" size={20} />
-                            <p className="text-sm text-gray-500">Present</p>
-                        </div>
-                        <p className="text-3xl font-bold text-gray-900">{summary.present}</p>
-                    </div>
-
-                    <div className="rounded-[28px] border border-white/70 bg-white/85 p-5 shadow-lg shadow-slate-200/50 backdrop-blur">
-                        <div className="mb-2 flex items-center gap-3">
-                            <XCircle className="text-red-600" size={20} />
-                            <p className="text-sm text-gray-500">Absent</p>
-                        </div>
-                        <p className="text-3xl font-bold text-gray-900">{summary.absent}</p>
-                    </div>
-
-                    <div className="rounded-[28px] border border-white/70 bg-white/85 p-5 shadow-lg shadow-slate-200/50 backdrop-blur">
-                        <div className="mb-2 flex items-center gap-3">
-                            <Clock3 className="text-amber-600" size={20} />
-                            <p className="text-sm text-gray-500">Late</p>
-                        </div>
-                        <p className="text-3xl font-bold text-gray-900">{summary.late}</p>
-                    </div>
-
-                    <div className="rounded-[28px] border border-white/70 bg-white/85 p-5 shadow-lg shadow-slate-200/50 backdrop-blur">
-                        <div className="mb-2 flex items-center gap-3">
-                            <UserSquare2 className="text-sky-600" size={20} />
-                            <p className="text-sm text-gray-500">On Duty</p>
-                        </div>
-                        <p className="text-3xl font-bold text-gray-900">{summary.onDuty}</p>
-                    </div>
-
-                    <div className="rounded-[28px] border border-white/70 bg-white/85 p-5 shadow-lg shadow-slate-200/50 backdrop-blur">
-                        <div className="mb-2 flex items-center gap-3">
-                            <CalendarDays className="text-blue-600" size={20} />
-                            <p className="text-sm text-gray-500">Overall %</p>
-                        </div>
-                        <p className="text-3xl font-bold text-gray-900">{summary.overallPercentage}%</p>
-                    </div>
-
-                    <div className="rounded-[28px] border border-white/70 bg-white/85 p-5 shadow-lg shadow-slate-200/50 backdrop-blur">
-                        <div className="mb-2 flex items-center gap-3">
-                            <ShieldAlert className="text-violet-600" size={20} />
-                            <p className="text-sm text-gray-500">75% Target</p>
-                        </div>
-                        <p className="text-lg font-bold text-gray-900">
-                            {summary.neededForSeventyFive > 0 ? `${summary.neededForSeventyFive} more present needed` : 'Safe'}
-                        </p>
-                    </div>
+                {/* Metrics Grid */}
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+                    <StatCard label="Present" value={summary.present} color="emerald" />
+                    <StatCard label="Absent" value={summary.absent} color="red" />
+                    <StatCard label="On Duty" value={summary.onDuty} color="blue" />
+                    <StatCard label="Late" value={summary.late} color="orange" />
+                    <StatCard label="Overall %" value={`${summary.overallPercentage}%`} color="indigo" />
+                    <TargetCard needed={summary.neededForSeventyFive} />
                 </div>
 
-                <div className="rounded-[32px] border border-white/70 bg-white/85 p-6 shadow-xl shadow-slate-200/50 backdrop-blur">
-                    <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex items-center gap-2">
-                            <Filter className="text-purple-600" size={18} />
-                            <h3 className="text-xl font-semibold">Attendance Filters</h3>
+                {/* Attendance Log Section */}
+                <div className="bg-white border border-gray-200 rounded-md shadow-sm">
+                    <div className="flex flex-col gap-6 p-6 lg:flex-row lg:items-center lg:justify-between border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                            <Filter className="text-gray-400" size={18} />
+                            <h3 className="text-base font-bold tracking-tight text-gray-900">Attendance Filter</h3>
                         </div>
 
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-2">
                             <button
                                 type="button"
                                 onClick={() => setFilters(defaultFilters)}
-                                className="rounded-2xl bg-gray-100 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-200"
+                                className="h-9 px-4 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
                             >
-                                Reset Filters
+                                Clear
                             </button>
                             <button
                                 type="button"
                                 onClick={exportToExcel}
                                 disabled={filteredReport.length === 0}
-                                className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                                className="h-9 px-4 inline-flex items-center gap-2 rounded bg-emerald-600 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors disabled:opacity-50"
                             >
-                                <Download size={16} /> Export Excel
+                                <Download size={14} /> Export Report
                             </button>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        <div>
-                            <label className="mb-1 block text-sm font-medium text-gray-700">From Date</label>
+                    {/* Filter Inputs */}
+                    <div className="grid grid-cols-1 gap-6 p-6 md:grid-cols-2 lg:grid-cols-4 bg-gray-50/30">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold uppercase tracking-widest text-gray-500">From Date</label>
                             <input
                                 name="fromDate"
                                 type="date"
                                 value={filters.fromDate}
                                 onChange={handleFilterChange}
-                                className="w-full rounded-2xl border px-3 py-2"
+                                className="block w-full h-10 border border-gray-300 rounded-md text-sm px-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                             />
                         </div>
 
-                        <div>
-                            <label className="mb-1 block text-sm font-medium text-gray-700">To Date</label>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold uppercase tracking-widest text-gray-500">To Date</label>
                             <input
                                 name="toDate"
                                 type="date"
                                 value={filters.toDate}
                                 onChange={handleFilterChange}
-                                className="w-full rounded-2xl border px-3 py-2"
+                                className="block w-full h-10 border border-gray-300 rounded-md text-sm px-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                             />
                         </div>
 
-                        <div>
-                            <label className="mb-1 block text-sm font-medium text-gray-700">Period</label>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Period Scope</label>
                             <select
                                 name="period"
                                 value={filters.period}
                                 onChange={handleFilterChange}
-                                className="w-full rounded-2xl border px-3 py-2"
+                                className="block w-full h-10 border border-gray-300 rounded-md text-sm px-3 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                             >
                                 <option value="">All Periods</option>
                                 <option value="Morning">Morning</option>
@@ -448,13 +378,13 @@ const StudentDashboard: React.FC = () => {
                             </select>
                         </div>
 
-                        <div>
-                            <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Status Type</label>
                             <select
                                 name="status"
                                 value={filters.status}
                                 onChange={handleFilterChange}
-                                className="w-full rounded-2xl border px-3 py-2"
+                                className="block w-full h-10 border border-gray-300 rounded-md text-sm px-3 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                             >
                                 <option value="">All Status</option>
                                 <option value="Present">Present</option>
@@ -464,44 +394,38 @@ const StudentDashboard: React.FC = () => {
                             </select>
                         </div>
                     </div>
-                </div>
 
-                <div className="overflow-hidden rounded-[32px] border border-white/70 bg-white/85 shadow-xl shadow-slate-200/50 backdrop-blur">
-                    <div className="border-b border-slate-200 px-6 py-4">
-                        <h3 className="text-xl font-semibold">My Attendance Log</h3>
-                        <p className="mt-1 text-sm text-gray-500">Showing {filteredReport.length} records</p>
-                    </div>
-
+                    {/* Report Table */}
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[760px] text-left">
-                            <thead className="border-b bg-gray-50">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 border-y border-gray-200">
                                 <tr>
-                                    <th className="p-4 font-semibold text-gray-600">Date</th>
-                                    <th className="p-4 font-semibold text-gray-600">Day</th>
-                                    <th className="p-4 font-semibold text-gray-600">Period / Session</th>
-                                    <th className="p-4 font-semibold text-gray-600">Marked Time</th>
-                                    <th className="p-4 font-semibold text-gray-600">Status</th>
+                                    <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Date</th>
+                                    <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Day</th>
+                                    <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Period / Session</th>
+                                    <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Marked Time</th>
+                                    <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Status</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-gray-100">
                                 {filteredReport.length > 0 ? filteredReport.map((log) => (
-                                    <tr key={log.id} className="border-b border-slate-100 hover:bg-gray-50">
-                                        <td className="p-4">{new Date(log.timestamp).toLocaleDateString()}</td>
-                                        <td className="p-4 text-gray-600">
+                                    <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
+                                        <td className="px-6 py-4 font-medium text-gray-900">{new Date(log.timestamp).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 text-gray-500">
                                             {new Date(log.timestamp).toLocaleDateString(undefined, { weekday: 'long' })}
                                         </td>
-                                        <td className="p-4 text-gray-600">{log.sessions?.subject || formatPeriodLabel(log.period)}</td>
-                                        <td className="p-4 text-gray-600">{new Date(log.timestamp).toLocaleTimeString()}</td>
-                                        <td className="p-4">
-                                            <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClasses[log.status] || statusBadgeClasses.Pending}`}>
+                                        <td className="px-6 py-4 text-gray-600">{log.sessions?.subject || formatPeriodLabel(log.period)}</td>
+                                        <td className="px-6 py-4 text-gray-600 font-mono text-xs">{new Date(log.timestamp).toLocaleTimeString()}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-tighter ${statusBadgeClasses[log.status] || statusBadgeClasses.Pending}`}>
                                                 {log.status}
                                             </span>
                                         </td>
                                     </tr>
                                 )) : (
                                     <tr>
-                                        <td colSpan={5} className="p-6 text-center text-gray-500">
-                                            No attendance records match the selected filters.
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500 bg-white">
+                                            No attendance records established for currently selected filter criteria.
                                         </td>
                                     </tr>
                                 )}
@@ -513,5 +437,52 @@ const StudentDashboard: React.FC = () => {
         </div>
     );
 };
+
+// --- Helper Components for Cleanliness ---
+
+const ProfileItem = ({ label, value, highlight = false }: { label: string; value: string | undefined; highlight?: boolean }) => (
+    <div className="p-6 bg-white">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">{label}</p>
+        <p className={`text-sm font-semibold ${highlight ? 'text-indigo-600' : 'text-gray-900'}`}>{value || 'N/A'}</p>
+    </div>
+);
+
+const StatusItem = ({ label, status }: { label: string; status: string }) => (
+    <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-gray-600">{label}</span>
+        <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ${statusBadgeClasses[status] || statusBadgeClasses.Pending}`}>
+            {status}
+        </span>
+    </div>
+);
+
+const StatCard = ({ label, value, color }: { label: string; value: string | number; color: string }) => {
+    const colorMap: Record<string, string> = {
+        emerald: 'text-emerald-600',
+        red: 'text-red-600',
+        blue: 'text-sky-600',
+        orange: 'text-amber-600',
+        indigo: 'text-indigo-600',
+    };
+    
+    return (
+        <div className="bg-white border border-gray-200 p-5 rounded-md shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3 leading-none">{label}</p>
+            <p className={`text-2xl font-bold tracking-tight ${colorMap[color] || 'text-gray-900'}`}>{value}</p>
+        </div>
+    );
+};
+
+const TargetCard = ({ needed }: { needed: number }) => (
+    <div className={`p-5 rounded-md border shadow-sm ${needed > 0 ? 'bg-indigo-50 border-indigo-100' : 'bg-white border-gray-200'}`}>
+        <div className="flex items-center gap-2 mb-3">
+            <ShieldAlert size={14} className={needed > 0 ? 'text-indigo-600' : 'text-gray-400'} />
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 leading-none">Institutional 75% Target</p>
+        </div>
+        <p className={`text-sm font-bold ${needed > 0 ? 'text-indigo-700' : 'text-emerald-600'}`}>
+            {needed > 0 ? `${needed} more sessions required` : 'Met Requirements'}
+        </p>
+    </div>
+);
 
 export default StudentDashboard;

@@ -65,162 +65,132 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f5fbff_0%,#edf7fb_42%,#eef2fa_100%)] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-[40px] border border-white/80 bg-white/80 shadow-[0_40px_120px_rgba(15,23,42,0.12)] backdrop-blur-xl lg:grid-cols-[1.05fr,0.95fr]">
-        <section className="relative overflow-hidden bg-[linear-gradient(140deg,#0f172a_0%,#164e63_50%,#0f766e_100%)] px-6 py-8 text-white sm:px-10 sm:py-10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.22),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.2),transparent_34%)]" />
-          <div className="relative flex h-full flex-col justify-between">
-            <div>
-              <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold text-cyan-100">
-                <ShieldCheck size={16} />
-                Attendance OS
-              </div>
-              <h1 className="mt-6 max-w-lg text-4xl font-semibold tracking-tight sm:text-5xl">
-                Professional face-recognition attendance for campus operations
-              </h1>
-              <p className="mt-5 max-w-xl text-sm leading-7 text-slate-200/85 sm:text-base">
-                Manage student check-ins, live kiosk scans, attendance reports, and schedule controls from a single streamlined workspace.
-              </p>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="mx-auto w-full max-w-5xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm lg:grid lg:grid-cols-2">
+        {/* LEFT COLUMN: System Title & Description */}
+        <section className="bg-slate-50 px-8 py-12 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-gray-200">
+          <div className="flex flex-col gap-6 max-w-sm">
+            <div className="flex items-center gap-2 text-indigo-600">
+              <ShieldCheck size={28} className="text-indigo-600" />
+              <span className="text-xl font-semibold text-gray-900">Attendance OS</span>
             </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <FeatureCard title="Instant marking" description="Recognized faces are saved immediately without a manual review queue." icon={<Cpu size={18} />} />
-              <FeatureCard title="Repeat scans" description="Attendance can be captured again after the short cooldown gap." icon={<Shield size={18} />} />
-              <FeatureCard title="Cleaner UX" description="Student, admin, kiosk, and reports now share one polished interface." icon={<User size={18} />} />
-            </div>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              Professional Academic Operations
+            </h1>
+            <p className="text-base text-gray-600 leading-relaxed">
+              Manage student check-ins, live kiosks, attendance reports, and campus schedules from a single, centralized system.
+            </p>
           </div>
         </section>
 
-        <section className="flex items-center justify-center px-6 py-8 sm:px-10 sm:py-10">
-          <div className="w-full max-w-md">
-            <div className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-700">Secure access</div>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Sign in to continue</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-500">
-              Choose student or admin access and continue into the attendance workspace.
+        {/* RIGHT COLUMN: Login Form */}
+        <section className="px-8 py-12 flex flex-col justify-center">
+          <div className="w-full max-w-sm mx-auto">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Sign In</h2>
+            <p className="text-sm text-gray-500 mb-8">
+              Access the attendance workspace.
             </p>
 
-            <div className="mt-6 flex rounded-full bg-slate-100 p-1">
+            {/* Clean Tabs for Role Toggle */}
+            <div className="flex border-b border-gray-200 mb-8">
               <button
                 type="button"
                 onClick={() => { setLoginType('student'); setStatus(''); }}
-                className={`flex-1 rounded-full px-4 py-3 text-sm font-semibold transition ${
+                className={`flex-1 pb-3 text-sm font-medium border-b-2 transition-colors ${
                   loginType === 'student'
-                    ? 'bg-white text-slate-950 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'border-indigo-600 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Student Access
+                Student
               </button>
               <button
                 type="button"
                 onClick={() => { setLoginType('institution'); setStatus(''); }}
-                className={`flex-1 rounded-full px-4 py-3 text-sm font-semibold transition ${
+                className={`flex-1 pb-3 text-sm font-medium border-b-2 transition-colors ${
                   loginType === 'institution'
-                    ? 'bg-white text-slate-950 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                    ? 'border-indigo-600 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
               >
-                Admin Access
+                Administrator
               </button>
             </div>
 
-            <form onSubmit={handleLogin} className="mt-6 space-y-5">
+            <form onSubmit={handleLogin} className="space-y-6">
               {loginType === 'student' ? (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">Registration Number</label>
-                  <InputShell icon={<Hash size={18} className="text-slate-400" />}>
+                  <label className="block text-sm font-medium text-gray-700">Registration Number</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Hash size={16} className="text-gray-400" />
+                    </div>
                     <input
                       type="text"
-                      placeholder="Enter your student register number"
+                      placeholder="Enter register no."
                       value={studentRegisterNumber}
                       onChange={(event) => setStudentRegisterNumber(event.target.value)}
                       required
-                      className="h-12 w-full bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400"
+                      className="block w-full pl-10 pr-3 h-10 border border-gray-300 rounded-md text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
-                  </InputShell>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-5">
+                <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Email or Username</label>
-                    <InputShell icon={<Mail size={18} className="text-slate-400" />}>
+                    <label className="block text-sm font-medium text-gray-700">Username / Email</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Mail size={16} className="text-gray-400" />
+                      </div>
                       <input
                         type="text"
                         placeholder="Admin account"
                         value={institutionForm.username}
                         onChange={(event) => setInstitutionForm((prev) => ({ ...prev, username: event.target.value }))}
                         required
-                        className="h-12 w-full bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400"
+                        className="block w-full pl-10 pr-3 h-10 border border-gray-300 rounded-md text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       />
-                    </InputShell>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-slate-700">Password</label>
-                    <InputShell icon={<KeyRound size={18} className="text-slate-400" />}>
+                    <label className="block text-sm font-medium text-gray-700">Password</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <KeyRound size={16} className="text-gray-400" />
+                      </div>
                       <input
                         type="password"
                         placeholder="Enter password"
                         value={institutionForm.password}
                         onChange={(event) => setInstitutionForm((prev) => ({ ...prev, password: event.target.value }))}
                         required
-                        className="h-12 w-full bg-transparent text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400"
+                        className="block w-full pl-10 pr-3 h-10 border border-gray-300 rounded-md text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       />
-                    </InputShell>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {status ? (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {status && (
+                <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                   {status}
                 </div>
-              ) : null}
+              )}
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-lg shadow-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+                className="w-full flex justify-center items-center gap-2 h-10 rounded-md bg-indigo-600 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting
-                  ? 'Authenticating...'
-                  : loginType === 'student'
-                    ? 'Open Student Portal'
-                    : 'Open Admin Workspace'}
-                {!submitting ? <ArrowRight size={18} className="transition group-hover:translate-x-0.5" /> : null}
+                {submitting ? 'Authenticating...' : 'Sign in'}
+                {!submitting && <ArrowRight size={16} />}
               </button>
             </form>
-
-            <div className="mt-8 flex items-center gap-3 rounded-[28px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-              <ShieldCheck size={18} className="text-emerald-600" />
-              Session tokens are protected on the backend and recognition runs through the configured attendance API.
-            </div>
           </div>
         </section>
       </div>
-    </div>
-  );
-}
-
-function FeatureCard({ title, description, icon }: { title: string; description: string; icon: React.ReactNode }) {
-  return (
-    <div className="rounded-[28px] border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
-      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-cyan-100">
-        {icon}
-      </div>
-      <div className="mt-4 font-semibold text-white">{title}</div>
-      <div className="mt-2 text-sm leading-6 text-slate-200/75">{description}</div>
-    </div>
-  );
-}
-
-function InputShell({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 shadow-sm">
-      <div className="shrink-0">
-        {icon}
-      </div>
-      {children}
     </div>
   );
 }

@@ -528,170 +528,128 @@ export default function AttendanceKiosk() {
   const progressWidth = `${Math.min(100, Math.round((liveGuide.progressCurrent / Math.max(1, liveGuide.progressTotal)) * 100))}%`;
 
   return (
-    <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-[#03111f] text-white">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.22),transparent_28%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.14),transparent_25%),linear-gradient(180deg,rgba(3,17,31,0.78),rgba(3,17,31,0.08)_26%,rgba(3,17,31,0.9))]" />
+    <div className="relative h-screen w-screen overflow-hidden bg-black text-white font-sans">
+      {/* Background Camera */}
+      <Webcam
+        audio={false}
+        ref={webcamRef}
+        screenshotFormat="image/jpeg"
+        screenshotQuality={KIOSK_SCREENSHOT_QUALITY}
+        forceScreenshotSourceSize
+        className="absolute inset-0 h-full w-full object-cover -scale-x-100"
+        videoConstraints={KIOSK_VIDEO_CONSTRAINTS}
+      />
 
-      <div className="absolute left-0 top-0 z-20 flex w-full items-center justify-between p-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/90 shadow-[0_18px_40px_rgba(6,182,212,0.35)]">
+      {/* Dark Overlay for better text readability at edges */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />
+
+      {/* Face Tracking Canvas */}
+      <FaceDetectionOverlay
+        webcamRef={webcamRef}
+        active={isCapturing}
+        onStateChange={handleTrackingStateChange}
+      />
+
+      {/* Top Navigation / Status Header */}
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-8">
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-10 flex items-center justify-center bg-indigo-600 rounded">
             <ScanFace className="h-6 w-6 text-white" />
           </div>
-          <div className="border-l border-white/15 pl-4">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.32em] text-cyan-200/75">Attendance Station</div>
-            <div className="text-lg font-semibold tracking-wide text-white">Live Recognition Kiosk</div>
+          <div>
+            <h1 className="text-lg font-bold tracking-tight text-white uppercase">Station {terminalId}</h1>
+            <p className="text-xs font-medium text-gray-400">INSTITUTIONAL ATTENDANCE PORTAL</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {trackingState.hasFace && trackingState.confidence !== null ? (
-            <div className={`rounded-full border px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] shadow-lg ${getTrackingBadgeClasses(trackingState)}`}>
-              {trackingState.readyForCapture ? 'Locked' : 'Tracking'} {Math.round(trackingState.confidence * 100)}%
-            </div>
-          ) : null}
-
-          <div className="flex items-center gap-3 rounded-full border border-white/10 bg-slate-950/45 px-4 py-2 text-sm font-medium text-white/80 shadow-lg backdrop-blur-md">
-            <Clock size={16} />
-            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} | {terminalId}
+        <div className="flex items-center gap-4">
+          <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded border border-white/10 text-sm font-mono tracking-wider">
+            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </div>
+          <div className={`px-4 py-2 rounded text-xs font-bold uppercase tracking-widest border ${
+            isCapturing ? 'bg-indigo-600/20 border-indigo-400 text-indigo-400' : 'bg-red-600/20 border-red-400 text-red-400'
+          }`}>
+            {isCapturing ? 'Online' : 'Paused'}
           </div>
         </div>
       </div>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center">
-        <Webcam
-          audio={false}
-          ref={webcamRef}
-          screenshotFormat="image/jpeg"
-          screenshotQuality={KIOSK_SCREENSHOT_QUALITY}
-          forceScreenshotSourceSize
-          className="absolute inset-0 h-full w-full object-cover -scale-x-100"
-          videoConstraints={KIOSK_VIDEO_CONSTRAINTS}
-        />
-
-        <div className="absolute inset-0 bg-black/24" />
-
-        <FaceDetectionOverlay
-          webcamRef={webcamRef}
-          active={isCapturing}
-          onStateChange={handleTrackingStateChange}
-        />
-
-        <div className="absolute left-6 top-24 z-20 hidden w-[320px] xl:block">
-          <div className="rounded-[28px] border border-white/10 bg-slate-950/45 p-5 shadow-2xl backdrop-blur-xl">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/70">Session Guide</div>
-            <h3 className="mt-2 text-2xl font-semibold text-white">Fast, touch-free attendance</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-200/75">
-              Stand alone in the frame, keep your face centered, and hold still until the kiosk confirms your scan.
-            </p>
-
-            <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-center justify-between text-xs uppercase tracking-[0.22em] text-slate-300/70">
-                <span>Confirmation progress</span>
-                <span>{liveGuide.progressCurrent}/{liveGuide.progressTotal}</span>
-              </div>
-              <div className="mt-3 h-2 rounded-full bg-white/10">
-                <div className="h-2 rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400" style={{ width: progressWidth }} />
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <div className="text-xs uppercase tracking-[0.22em] text-slate-300/70">Camera status</div>
-                <div className="mt-1 text-lg font-semibold text-white">{isCapturing ? 'Active' : 'Paused'}</div>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <div className="text-xs uppercase tracking-[0.22em] text-slate-300/70">Live instruction</div>
-                <div className="mt-1 text-base font-semibold text-white">{liveGuide.title}</div>
-              </div>
-            </div>
+      {/* Main Feedback Area (Lower Center) */}
+      <div className="absolute bottom-24 left-0 right-0 z-20 flex flex-col items-center px-6 gap-6">
+        
+        {/* Instruction Banner */}
+        <div className={`flex flex-col items-center text-center max-w-xl transition-all duration-300 ${
+          liveGuide.tone === 'success' ? 'scale-110' : 'scale-100'
+        }`}>
+          <div className={`px-6 py-3 rounded-md border-2 mb-4 bg-black/60 backdrop-blur-lg ${
+            liveGuide.tone === 'success' ? 'border-emerald-500 text-emerald-400' :
+            liveGuide.tone === 'danger' ? 'border-red-500 text-red-500' :
+            liveGuide.tone === 'warning' ? 'border-amber-500 text-amber-500' :
+            'border-white/20 text-white'
+          }`}>
+            <h2 className="text-2xl font-black uppercase tracking-tight leading-none mb-1">
+              {liveGuide.title}
+            </h2>
+            <p className="text-sm font-medium opacity-90">{liveGuide.message}</p>
           </div>
+          
+          {/* Progress Bar */}
+          {liveGuide.status === 'Pending' && (
+            <div className="w-64 h-1.5 bg-white/10 rounded-full overflow-hidden border border-white/5">
+              <div 
+                className="h-full bg-indigo-500 transition-all duration-300" 
+                style={{ width: progressWidth }} 
+              />
+            </div>
+          )}
         </div>
 
-        <div className="absolute right-6 top-24 z-20 hidden w-[340px] xl:block">
-          <div className="rounded-[28px] border border-white/10 bg-slate-950/45 p-5 shadow-2xl backdrop-blur-xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/70">Recent Activity</div>
-                <h3 className="mt-2 text-xl font-semibold text-white">Scan timeline</h3>
-              </div>
-              <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/80">
-                {scanFeed.length} items
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              {scanFeed.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-white/10 px-4 py-6 text-sm text-slate-300/65">
-                  Recognition events will appear here once scanning begins.
-                </div>
-              ) : (
-                scanFeed.map((log) => (
-                  <div key={log.id} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-semibold text-white">{log.name}</div>
-                        <div className="mt-1 text-xs leading-5 text-slate-300/70">{log.message}</div>
-                      </div>
-                      <div className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] ${getFeedBadgeClasses(log.status)}`}>
-                        {log.status}
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs text-slate-400">{log.time}</div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="absolute bottom-12 z-20 flex w-full flex-col items-center gap-4 px-6">
-          <div className={`flex max-w-3xl items-center gap-4 rounded-[28px] border px-6 py-4 shadow-xl backdrop-blur-md transition-all ${getGuideToneClasses(liveGuide.tone)}`}>
-            {liveGuide.tone === 'success' ? (
-              <CheckCircle2 size={24} />
-            ) : liveGuide.tone === 'danger' ? (
-              <ShieldAlert size={24} />
-            ) : liveGuide.tone === 'ready' ? (
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-            ) : (
-              <ScanFace size={24} />
-            )}
-
+        {/* Big Success Notification */}
+        {lastScan && (lastScan.status === 'Success' || lastScan.status === 'Recent') && (
+          <div className={`flex items-center gap-6 px-10 py-6 rounded-lg text-white animate-in zoom-in slide-in-from-bottom-4 duration-500 ${
+            lastScan.status === 'Success' ? 'bg-emerald-600 shadow-2xl' : 'bg-amber-600 shadow-xl'
+          }`}>
+            <CheckCircle2 size={48} className="text-white/80" />
             <div>
-              <p className="text-lg font-bold text-white">{liveGuide.title}</p>
-              <p className="text-sm text-white/80">{liveGuide.message}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-1">
+                {lastScan.status === 'Success' ? 'Recognition Confirmed' : 'Scan Cooldown Active'}
+              </p>
+              <h3 className="text-3xl font-black">{lastScan.name}</h3>
+              <p className="text-sm font-medium text-white/80 mt-1">{lastScan.time} • Attendance Logged</p>
             </div>
           </div>
-
-          {lastScan && (lastScan.status === 'Success' || lastScan.status === 'Recent') ? (
-            <div className={`flex items-center gap-5 rounded-3xl px-8 py-5 text-white duration-300 ${
-              lastScan.status === 'Success'
-                ? 'bg-emerald-500 shadow-[0_10px_40px_rgba(16,185,129,0.4)]'
-                : 'bg-amber-500 shadow-[0_10px_40px_rgba(245,158,11,0.35)]'
-            }`}>
-              <div className={`rounded-full p-2 ${lastScan.status === 'Success' ? 'bg-emerald-600' : 'bg-amber-600'}`}>
-                <CheckCircle2 size={32} />
-              </div>
-              <div>
-                <p className="text-sm font-medium uppercase tracking-wider text-white/85">
-                  {lastScan.status === 'Success' ? 'Attendance Logged' : 'Repeat Scan Cooling Down'}
-                </p>
-                <p className="text-2xl font-black">{lastScan.name}</p>
-              </div>
-            </div>
-          ) : null}
-        </div>
+        )}
       </div>
 
-      <div className="absolute bottom-6 right-6 z-30">
+      {/* Kiosk Controls (Bottom Right) */}
+      <div className="absolute bottom-10 right-10 z-30">
         <button
           onClick={toggleCapturing}
-          className={`rounded-full border px-4 py-2 text-sm font-bold shadow-lg backdrop-blur-md transition-colors ${
+          className={`h-12 px-6 rounded text-sm font-bold uppercase tracking-wider transition-colors border-2 ${
             isCapturing
-              ? 'border-white/20 bg-slate-950/45 text-white hover:bg-slate-950/65'
-              : 'border-red-400 bg-red-500 text-white hover:bg-red-600'
+              ? 'bg-transparent border-white/20 text-white hover:bg-white/10'
+              : 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700'
           }`}
         >
-          {isCapturing ? 'Pause Kiosk' : 'Resume Kiosk'}
+          {isCapturing ? 'Pause Kiosk' : 'Start Kiosk'}
         </button>
+      </div>
+
+      {/* Small Logs (Bottom Left) -- Minimized */}
+      <div className="absolute bottom-10 left-10 z-30 max-w-sm hidden md:block">
+        <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
+          {scanFeed.slice(0, 3).map((log) => (
+            <div key={log.id} className="text-[10px] font-mono flex items-center gap-2 text-white/80">
+              <span className="text-gray-500">[{log.time}]</span>
+              <span className="truncate max-w-[120px] font-bold">{log.name}</span>
+              <span className={`px-1 py-0.5 rounded-sm text-[8px] font-bold uppercase ${
+                log.status === 'Success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-gray-400'
+              }`}>
+                {log.status}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

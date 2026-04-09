@@ -35,104 +35,92 @@ export default function AdminShell() {
   ), [location.pathname]);
 
   return (
-    <div className="flex min-h-screen bg-[linear-gradient(180deg,#f8fbff_0%,#eef6fb_46%,#edf2f9_100%)] text-slate-900">
+    <div className="flex min-h-screen bg-gray-50/50 text-gray-900 font-sans">
       <button
         type="button"
         onClick={() => setMenuOpen((prev) => !prev)}
-        className="fixed right-4 top-4 z-50 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm lg:hidden"
+        className="fixed right-4 top-4 z-50 inline-flex h-10 w-10 items-center justify-center rounded border border-gray-300 bg-white text-gray-700 shadow-sm lg:hidden"
         aria-label="Toggle navigation"
       >
         {menuOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
-      <aside className={`fixed inset-y-0 left-0 z-40 flex w-[290px] flex-col border-r border-slate-200 bg-slate-950 text-white transition-transform duration-300 lg:static lg:translate-x-0 ${menuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
-        <div className="border-b border-white/10 px-6 py-6">
+      <aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-gray-900 text-white transition-transform duration-300 lg:static lg:translate-x-0 ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="border-b border-gray-800 px-8 py-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400 text-slate-950 shadow-[0_20px_40px_rgba(34,211,238,0.24)]">
-              <ShieldCheck size={20} />
+            <div className="w-8 h-8 bg-indigo-600 rounded flex items-center justify-center">
+               <ShieldCheck size={20} className="text-white" />
             </div>
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.32em] text-cyan-200/75">Attendance OS</div>
-              <div className="mt-1 text-lg font-semibold text-white">Admin Workspace</div>
-            </div>
+            <span className="text-base font-bold uppercase tracking-widest text-white">Registry UI</span>
           </div>
         </div>
 
-        <div className="px-4 py-5">
-          <div className="rounded-[28px] border border-white/10 bg-white/5 px-4 py-4">
-            <div className="text-xs uppercase tracking-[0.24em] text-slate-400">Signed in</div>
-            <div className="mt-3 flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/20 text-sm font-semibold text-cyan-100">
-                {session?.user?.name?.charAt(0) || 'A'}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-white">{session?.user?.name || 'Administrator'}</p>
-                <p className="truncate text-sm text-slate-400">{session?.user?.email || 'admin@institution.edu'}</p>
-              </div>
-            </div>
+        <div className="px-8 py-6 border-b border-gray-800 bg-black/20">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Operator Console</span>
+            <span className="text-sm font-bold text-white truncate">{session?.user?.name || 'Institutional Admin'}</span>
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 pb-4">
-          <div className="px-3 pb-3 text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Navigation</div>
-          <div className="space-y-1.5">
-            {navigationItems.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                onClick={closeMenu}
-                className={({ isActive }) => `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                  isActive
-                    ? 'bg-cyan-400 text-slate-950 shadow-[0_16px_30px_rgba(34,211,238,0.22)]'
-                    : 'text-slate-300 hover:bg-white/6 hover:text-white'
-                }`}
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon size={18} className={isActive ? 'text-slate-950' : 'text-slate-500'} />
-                    <span>{label}</span>
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </div>
+        <nav className="flex-1 overflow-y-auto px-4 py-8 space-y-1 custom-scrollbar">
+          {navigationItems.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={closeMenu}
+              className={({ isActive }) => `flex items-center gap-4 rounded px-4 py-3 text-xs font-bold uppercase tracking-widest transition-all ${
+                isActive
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
+              }`}
+            >
+              <Icon size={16} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
         </nav>
 
-        <div className="border-t border-white/10 p-4">
+        <div className="border-t border-gray-800 p-6 bg-black/10">
           <button
             onClick={logout}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10"
+            className="flex w-full items-center justify-between gap-3 rounded border border-gray-800 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:bg-gray-800 hover:text-white transition-all group"
           >
-            <LogOut size={16} /> Sign out
+            <div className="flex items-center gap-3">
+               <LogOut size={14} />
+               <span>Terminate Session</span>
+            </div>
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
           </button>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-10 border-b border-slate-200/80 bg-white/80 px-6 py-5 backdrop-blur-xl sm:px-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">Campus Operations</div>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{currentNavLabel}</h1>
+        <header className="sticky top-0 z-10 border-b border-gray-200 bg-white/80 backdrop-blur-md px-8 py-4 sm:px-12">
+          <div className="flex max-w-7xl mx-auto items-center justify-between">
+            <div className="flex items-center gap-4">
+               <div className="w-1 h-6 bg-indigo-600 rounded-full hidden sm:block" />
+               <h1 className="text-sm font-black uppercase tracking-[0.2em] text-gray-400">{currentNavLabel}</h1>
             </div>
-
-            <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600">
-              {location.pathname}
+            <div className="flex items-center gap-4">
+               <div className="hidden md:flex items-center gap-2 border border-gray-200 px-3 py-1.5 rounded bg-gray-50">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">System Nominal</span>
+               </div>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+        <main className="flex-1 p-8 sm:p-12 max-w-7xl mx-auto w-full">
           <Outlet />
         </main>
       </div>
 
-      {menuOpen ? (
+      {menuOpen && (
         <div
-          className="fixed inset-0 z-30 bg-slate-950/50 lg:hidden"
+          className="fixed inset-0 z-30 bg-gray-900/40 backdrop-blur-sm lg:hidden"
           onClick={closeMenu}
         />
-      ) : null}
+      )}
     </div>
   );
 }

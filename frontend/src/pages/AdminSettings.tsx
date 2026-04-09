@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { CalendarDays, Clock3, Plus, Save, ShieldCheck, Trash2 } from 'lucide-react';
+import { CalendarDays, Clock3, Plus, Save, ShieldCheck } from 'lucide-react';
 import { api, getApiErrorMessage } from '../lib/api';
 import type { AttendanceSettings, HolidayItem } from '../types/app';
 
@@ -210,210 +210,258 @@ const AdminSettings: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="rounded-[32px] border border-white/70 bg-white/85 p-6 shadow-xl shadow-slate-200/50 backdrop-blur">
-        <p className="text-slate-500 italic">Loading attendance settings...</p>
+      <div className="bg-white border border-gray-200 p-8 rounded-md shadow-sm">
+        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest italic animate-pulse">Synchronizing configurations...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      <section className="overflow-hidden rounded-[36px] border border-white/70 bg-white/90 shadow-xl shadow-slate-200/60 backdrop-blur">
-        <div className="bg-[linear-gradient(135deg,#0f172a_0%,#164e63_45%,#0f766e_100%)] px-6 py-7 text-white sm:px-8">
-          <div className="max-w-3xl">
-            <div className="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-100/80">System Settings</div>
-            <h2 className="mt-2 flex items-center gap-3 text-3xl font-semibold tracking-tight">
-              <Clock3 />
-              Attendance and recognition controls
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-slate-200/85">
-              Configure daily attendance windows, face recognition confidence, repeat scan gap, and holiday dates from one page.
-            </p>
-          </div>
+      {/* Header */}
+      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between border-b border-gray-200 pb-8">
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 mb-2">Systems Engineering</div>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Institutional Parameters</h2>
+          <p className="mt-2 text-sm text-gray-500">
+            Configure recognition protocols, temporal windows, and academic schedules.
+          </p>
         </div>
+        <button
+          onClick={saveSettings}
+          disabled={saving}
+          className="h-10 px-6 inline-flex items-center justify-center gap-2 rounded-md bg-indigo-600 text-sm font-bold uppercase tracking-widest text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
+        >
+          <Save size={16} />
+          {saving ? 'UPDATING...' : 'Commit Changes'}
+        </button>
+      </div>
 
-        <div className="space-y-6 p-6 sm:p-8">
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
-              <div className="flex items-start gap-3">
-                <Clock3 className="mt-1 text-slate-700" />
-                <div>
-                  <h3 className="text-xl font-semibold text-slate-900">Attendance windows</h3>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">
-                    Students can scan only during these active attendance periods.
-                  </p>
-                </div>
-              </div>
+      {(status || scheduleHealth || recognitionHealth) && (
+        <div className={`rounded border p-4 text-xs font-medium flex items-center gap-3 ${
+          (scheduleHealth || recognitionHealth) 
+            ? 'border-amber-200 bg-amber-50 text-amber-800' 
+            : 'border-indigo-100 bg-indigo-50/30 text-indigo-700'
+        }`}>
+          <ShieldCheck size={14} className="shrink-0" />
+          {scheduleHealth || recognitionHealth || status}
+        </div>
+      )}
 
-              <div className="mt-5 grid grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Morning Start</label>
-                  <input type="time" name="morning_start" value={settings.morning_start} onChange={handleChange} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3" />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Morning End</label>
-                  <input type="time" name="morning_end" value={settings.morning_end} onChange={handleChange} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3" />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Afternoon Start</label>
-                  <input type="time" name="evening_start" value={settings.evening_start} onChange={handleChange} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3" />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Afternoon End</label>
-                  <input type="time" name="evening_end" value={settings.evening_end} onChange={handleChange} className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-3" />
-                </div>
-              </div>
+      {/* Main Settings Grid */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        {/* Attendance Windows */}
+        <section className="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden flex flex-col">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
+            <Clock3 size={16} className="text-gray-400" />
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-900">Temporal Protocols</h3>
+          </div>
 
-              <label className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                <input
-                  type="checkbox"
-                  name="auto_mark_absent"
-                  checked={settings.auto_mark_absent}
-                  onChange={handleChange}
-                  className="h-4 w-4"
+          <div className="p-8 flex-1 flex flex-col">
+            <div className="grid grid-cols-2 gap-8">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Morning Session (Entrance)</label>
+                <input 
+                  type="time" 
+                  name="morning_start" 
+                  value={settings.morning_start} 
+                  onChange={handleChange} 
+                  className="block w-full h-11 border border-gray-200 rounded bg-white text-sm px-4 focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-medium" 
                 />
-                <span className="font-medium text-slate-700">Auto-mark absent after a window closes</span>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Morning Session (Exit)</label>
+                <input 
+                  type="time" 
+                  name="morning_end" 
+                  value={settings.morning_end} 
+                  onChange={handleChange} 
+                  className="block w-full h-11 border border-gray-200 rounded bg-white text-sm px-4 focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-medium" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Afternoon Session (Entrance)</label>
+                <input 
+                  type="time" 
+                  name="evening_start" 
+                  value={settings.evening_start} 
+                  onChange={handleChange} 
+                  className="block w-full h-11 border border-gray-200 rounded bg-white text-sm px-4 focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-medium" 
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Afternoon Session (Exit)</label>
+                <input 
+                  type="time" 
+                  name="evening_end" 
+                  value={settings.evening_end} 
+                  onChange={handleChange} 
+                  className="block w-full h-11 border border-gray-200 rounded bg-white text-sm px-4 focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-medium" 
+                />
+              </div>
+            </div>
+
+            <div className="mt-10 pt-8 border-t border-gray-100">
+               <label className="flex items-start gap-4 cursor-pointer group">
+                <div className="flex items-center h-5 mt-0.5">
+                  <input
+                    type="checkbox"
+                    name="auto_mark_absent"
+                    checked={settings.auto_mark_absent}
+                    onChange={handleChange}
+                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="flex-1">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-gray-900 block mb-1 group-hover:text-indigo-600 transition-colors">Autonomous Status Enforcement</span>
+                  <span className="text-xs text-gray-500 leading-relaxed italic">
+                    Execute automated absence cataloging for students failing to register within established windows.
+                  </span>
+                </div>
               </label>
             </div>
+          </div>
+        </section>
 
-            <div className="rounded-[28px] border border-slate-200 bg-white p-5">
-              <div className="flex items-start gap-3">
-                <ShieldCheck className="mt-1 text-emerald-700" />
-                <div>
-                  <h3 className="text-xl font-semibold text-slate-900">Recognition controls</h3>
-                  <p className="mt-1 text-sm leading-6 text-slate-600">
-                    Attendance is saved instantly when a scan passes the required confidence. Repeated scans are allowed after the cooldown gap.
-                  </p>
-                </div>
-              </div>
+        {/* Recognition Settings */}
+        <section className="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden flex flex-col">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
+            <ShieldCheck size={16} className="text-gray-400" />
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-900">Recognition Algorithms</h3>
+          </div>
 
-              <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Minimum Recognition Confidence</label>
-                  <input type="number" step="0.01" min="0" max="1" name="auto_accept_threshold" value={settings.auto_accept_threshold} onChange={handleChange} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3" />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Confirmation Mode</label>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-900">
-                    1 confirmation
-                  </div>
-                  <p className="mt-2 text-xs leading-5 text-slate-500">
-                    Attendance is saved on the first strong match.
-                  </p>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Repeat Scan Gap (seconds)</label>
-                  <input type="number" min="1" max="300" name="cooldown_seconds" value={settings.cooldown_seconds} onChange={handleChange} className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3" />
-                  <p className="mt-2 text-xs leading-5 text-slate-500">
-                    This prevents the same face from being captured repeatedly within a few seconds while still allowing multiple attendance scans later.
-                  </p>
-                </div>
-              </div>
+          <div className="p-8 space-y-8 flex-1">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Minimum Confidence Coefficient (0.0 - 1.0)</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                min="0" 
+                max="1" 
+                name="auto_accept_threshold" 
+                value={settings.auto_accept_threshold} 
+                onChange={handleChange} 
+                className="block w-full h-11 border border-gray-200 rounded bg-white text-sm px-4 focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-mono font-bold" 
+              />
+              <p className="text-[10px] font-medium text-gray-400 italic">Recommended threshold: 0.78 for balanced biometric precision.</p>
+            </div>
 
-              {(scheduleHealth || recognitionHealth) ? (
-                <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  {scheduleHealth || recognitionHealth}
-                </div>
-              ) : null}
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Biometric Cooldown Period (Seconds)</label>
+              <input 
+                type="number" 
+                min="1" 
+                max="300" 
+                name="cooldown_seconds" 
+                value={settings.cooldown_seconds} 
+                onChange={handleChange} 
+                className="block w-full h-11 border border-gray-200 rounded bg-white text-sm px-4 focus:ring-2 focus:ring-indigo-500 transition-all outline-none font-mono font-bold" 
+              />
+              <p className="text-[10px] font-medium text-gray-400 italic">Inhibit consecutive registration events for the same institutional identity.</p>
+            </div>
+
+            <div className="p-5 rounded border border-indigo-100 bg-indigo-50/10">
+              <div className="text-[10px] font-black uppercase tracking-widest text-indigo-900 mb-2">High-Throughput Configuration</div>
+              <p className="text-xs text-indigo-700/80 leading-relaxed font-medium">
+                The current architecture utilizes single-frame confirming matching logic to maximize speed at terminal stations. 
+                Matches are instantaneously cataloged upon clearing the above confidence threshold.
+              </p>
             </div>
           </div>
+        </section>
+      </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              onClick={saveSettings}
-              disabled={saving}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
-            >
-              <Save size={16} /> {saving ? 'Saving...' : 'Save Settings'}
-            </button>
-          </div>
-
-          {status ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-              {status}
-            </div>
-          ) : null}
-        </div>
-      </section>
-
-      <section className="overflow-hidden rounded-[36px] border border-white/70 bg-white/90 shadow-xl shadow-slate-200/60 backdrop-blur">
-        <div className="flex items-center gap-3 border-b border-slate-200 bg-slate-50 px-6 py-5">
-          <CalendarDays className="text-violet-600" />
-          <div>
-            <h3 className="text-xl font-semibold text-slate-900">Holiday calendar</h3>
-            <p className="text-sm text-slate-500">Attendance sync skips Sundays and every date listed here as a holiday.</p>
-          </div>
+      {/* Holiday Calendar Section */}
+      <section className="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
+          <CalendarDays size={16} className="text-gray-400" />
+          <h3 className="text-[10px] font-bold uppercase tracking-widest text-gray-900">Institutional Holiday Calendar</h3>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 p-6 xl:grid-cols-[360px,1fr]">
-          <div className="space-y-4 rounded-[28px] border border-violet-100 bg-violet-50 p-5">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-violet-950">Holiday Date</label>
-              <input type="date" name="date" value={holidayForm.date} onChange={handleHolidayChange} className="w-full rounded-2xl border border-violet-100 bg-white px-3 py-3" />
-            </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-violet-950">Reason</label>
-              <input type="text" name="reason" value={holidayForm.reason} onChange={handleHolidayChange} className="w-full rounded-2xl border border-violet-100 bg-white px-3 py-3" placeholder="Ex: Founders Day" />
-            </div>
-            <button
-              type="button"
-              onClick={saveHoliday}
-              disabled={holidayLoading}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-3 font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
-            >
-              <Plus size={16} /> {holidayLoading ? 'Saving...' : 'Save Holiday'}
-            </button>
-            {holidayStatus ? (
-              <div className="rounded-2xl border border-violet-100 bg-white px-4 py-3 text-sm text-slate-700">
-                {holidayStatus}
+        <div className="grid grid-cols-1 md:grid-cols-[380px,1fr] divide-y md:divide-y-0 md:divide-x divide-gray-100">
+          {/* Holiday Form */}
+          <div className="p-8 bg-gray-50/30">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-6">Schedule New Event</h4>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Date</label>
+                <input 
+                  type="date" 
+                  name="date" 
+                  value={holidayForm.date} 
+                  onChange={handleHolidayChange} 
+                  className="block w-full h-10 border border-gray-200 rounded bg-white text-sm px-3 focus:ring-2 focus:ring-indigo-500 outline-none" 
+                />
               </div>
-            ) : null}
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Event Description</label>
+                <input 
+                  type="text" 
+                  name="reason" 
+                  value={holidayForm.reason} 
+                  onChange={handleHolidayChange} 
+                  className="block w-full h-10 border border-gray-200 rounded bg-white text-sm px-3 focus:ring-2 focus:ring-indigo-500 outline-none" 
+                  placeholder="e.g. Founder's Day Observance" 
+                />
+              </div>
+              <button
+                type="button"
+                onClick={saveHoliday}
+                disabled={holidayLoading}
+                className="w-full h-10 px-4 rounded bg-gray-900 text-xs font-bold uppercase tracking-widest text-white hover:bg-black disabled:opacity-50 transition-colors shadow-sm"
+              >
+                <Plus size={14} className="inline mr-2" />
+                {holidayLoading ? 'Processing...' : 'Add Objective'}
+              </button>
+              {holidayStatus && <div className="text-[10px] font-bold uppercase tracking-tight text-indigo-600 bg-indigo-50 p-2 rounded">{holidayStatus}</div>}
+            </div>
           </div>
 
-          <div className="overflow-hidden rounded-[28px] border border-slate-200">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="border-b bg-slate-50">
+          {/* Holiday Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50/50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Registry Date</th>
+                  <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px]">Institutional Occasion</th>
+                  <th className="px-6 py-3 font-bold text-gray-600 uppercase tracking-widest text-[10px] text-right">Operation</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {holidays.length === 0 ? (
                   <tr>
-                    <th className="px-4 py-3 text-sm font-semibold text-slate-600">Date</th>
-                    <th className="px-4 py-3 text-sm font-semibold text-slate-600">Reason</th>
-                    <th className="px-4 py-3 text-sm font-semibold text-slate-600">Status</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-600">Action</th>
+                    <td colSpan={3} className="px-6 py-20 text-center text-xs font-medium text-gray-300 uppercase tracking-widest italic">
+                      Zero custom holiday events scheduled.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {holidays.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-4 py-10 text-center text-sm italic text-slate-400">
-                        No holidays saved yet.
+                ) : (
+                  holidays.map((holiday) => (
+                    <tr key={holiday.id} className="hover:bg-gray-50/50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="text-xs font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                          {new Date(holiday.date).toLocaleDateString(undefined, { dateStyle: 'long' })}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                          {holiday.reason || 'Institutional Holiday'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => void removeHoliday(holiday.id)}
+                          disabled={holidayLoading}
+                          className="text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-800 disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
-                  ) : (
-                    holidays.map((holiday) => (
-                      <tr key={holiday.id} className="border-b border-slate-100 last:border-b-0">
-                        <td className="px-4 py-3 font-medium text-slate-900">{holiday.date}</td>
-                        <td className="px-4 py-3 text-slate-600">{holiday.reason || 'Holiday'}</td>
-                        <td className="px-4 py-3">
-                          <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
-                            {holiday.is_holiday ? 'Skipped for attendance' : 'Open'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => void removeHoliday(holiday.id)}
-                            disabled={holidayLoading}
-                            className="inline-flex items-center gap-2 rounded-2xl bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
-                          >
-                            <Trash2 size={14} /> Remove
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>

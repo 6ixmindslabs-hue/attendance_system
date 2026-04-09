@@ -75,27 +75,27 @@ const DEFAULT_FACE_OVERLAY_STATE: FaceOverlaySnapshot = {
 const getTonePalette = (tone: FaceOverlayTone) => {
   if (tone === 'green') {
     return {
-      stroke: '#22c55e',
-      glow: 'rgba(34, 197, 94, 0.45)',
-      fill: 'rgba(34, 197, 94, 0.18)',
-      label: '#14532d'
+      stroke: '#10b981', // Success emerald-600
+      fill: 'rgba(16, 185, 129, 0.05)',
+      labelBg: '#10b981',
+      labelText: '#ffffff'
     };
   }
 
   if (tone === 'yellow') {
     return {
-      stroke: '#f59e0b',
-      glow: 'rgba(245, 158, 11, 0.4)',
-      fill: 'rgba(245, 158, 11, 0.16)',
-      label: '#78350f'
+      stroke: '#f59e0b', // Amber-500
+      fill: 'transparent',
+      labelBg: '#f59e0b',
+      labelText: '#ffffff'
     };
   }
 
   return {
-    stroke: '#ef4444',
-    glow: 'rgba(239, 68, 68, 0.42)',
-    fill: 'rgba(239, 68, 68, 0.16)',
-    label: '#7f1d1d'
+    stroke: '#ef4444', // Red-500
+    fill: 'rgba(239, 68, 68, 0.05)',
+    labelBg: '#ef4444',
+    labelText: '#ffffff'
   };
 };
 
@@ -117,28 +117,6 @@ const createProcessSize = (videoWidth: number, videoHeight: number) => {
     width: Math.max(1, Math.round(DETECTION_MAX_EDGE * aspectRatio)),
     height: DETECTION_MAX_EDGE
   };
-};
-
-const drawRoundedRect = (
-  context: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number
-) => {
-  const safeRadius = Math.min(radius, width / 2, height / 2);
-  context.beginPath();
-  context.moveTo(x + safeRadius, y);
-  context.lineTo(x + width - safeRadius, y);
-  context.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
-  context.lineTo(x + width, y + height - safeRadius);
-  context.quadraticCurveTo(x + width, y + height, x + width - safeRadius, y + height);
-  context.lineTo(x + safeRadius, y + height);
-  context.quadraticCurveTo(x, y + height, x, y + height - safeRadius);
-  context.lineTo(x, y + safeRadius);
-  context.quadraticCurveTo(x, y, x + safeRadius, y);
-  context.closePath();
 };
 
 const getDetectionConfidence = (detection: Detection) => (
@@ -237,7 +215,7 @@ const buildDetectionState = ({
     return {
       status: 'multiple_faces',
       tone: 'red',
-      message: 'Multiple faces detected. Only one person should be in front of the camera.',
+      message: 'Single person scan required.',
       readyForCapture: false,
       hasFace: true,
       faceCount,
@@ -250,7 +228,7 @@ const buildDetectionState = ({
     return {
       status: 'increase_lighting',
       tone: 'yellow',
-      message: 'Increase lighting so your face is brighter and easier to read.',
+      message: 'Poor lighting detected. Move toward light.',
       readyForCapture: false,
       hasFace: true,
       faceCount,
@@ -263,7 +241,7 @@ const buildDetectionState = ({
     return {
       status: 'move_closer',
       tone: 'yellow',
-      message: 'Move closer so your face fills more of the frame.',
+      message: 'Too far. Move closer to the station.',
       readyForCapture: false,
       hasFace: true,
       faceCount,
@@ -276,7 +254,7 @@ const buildDetectionState = ({
     return {
       status: 'move_back',
       tone: 'yellow',
-      message: 'Move back slightly so your full face stays inside the frame.',
+      message: 'Too close. Step back slightly.',
       readyForCapture: false,
       hasFace: true,
       faceCount,
@@ -289,7 +267,7 @@ const buildDetectionState = ({
     return {
       status: 'center_face',
       tone: 'yellow',
-      message: 'Center your face in front of the camera.',
+      message: 'Face out of bounds. Center your pose.',
       readyForCapture: false,
       hasFace: true,
       faceCount,
@@ -302,7 +280,7 @@ const buildDetectionState = ({
     return {
       status: 'adjusting',
       tone: 'yellow',
-      message: 'Hold still while the tracker refines your face box.',
+      message: 'Tracking focus...',
       readyForCapture: false,
       hasFace: true,
       faceCount,
@@ -314,7 +292,7 @@ const buildDetectionState = ({
   return {
     status: 'locked',
     tone: 'green',
-    message: 'Face locked. Hold steady for attendance verification.',
+    message: 'Focus locked. Stay still.',
     readyForCapture: true,
     hasFace: true,
     faceCount,
@@ -436,6 +414,17 @@ export default function FaceDetectionOverlay({
       context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
       context.clearRect(0, 0, displayWidth, displayHeight);
 
+      // 1. Draw Static Guide Box (Minimal rectangular boundary)
+      const guideSize = Math.min(displayWidth, displayHeight) * 0.45;
+      const guideX = (displayWidth - guideSize) / 2;
+      const guideY = (displayHeight - guideSize) / 2;
+      
+      context.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      context.lineWidth = 1;
+      context.setLineDash([10, 10]);
+      context.strokeRect(guideX, guideY, guideSize, guideSize);
+      context.setLineDash([]);
+
       if (!detectorRef.current || !video || video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
         animationFrameRef.current = window.requestAnimationFrame(drawFrame);
         return;
@@ -462,7 +451,7 @@ export default function FaceDetectionOverlay({
           const sourceScaleX = video.videoWidth / Math.max(processSize.width, 1);
           const sourceScaleY = video.videoHeight / Math.max(processSize.height, 1);
 
-          const boxes = detections.slice(0, 3).map((detection, index) => {
+          const boxes = detections.slice(0, 1).map((detection) => {
             const bbox = detection.boundingBox!;
             const sourceX = bbox.originX * sourceScaleX;
             const sourceY = bbox.originY * sourceScaleY;
@@ -482,7 +471,7 @@ export default function FaceDetectionOverlay({
               width: projectedWidth,
               height: projectedHeight,
               tone: detections.length > 1 ? 'red' as const : 'yellow' as const,
-              label: `Face ${index + 1} ${Math.round(confidence * 100)}%`
+              label: `${Math.round(confidence * 100)}%`
             };
           });
 
@@ -529,7 +518,7 @@ export default function FaceDetectionOverlay({
               const primaryBox = {
                 ...boxes[0],
                 tone: nextState.tone,
-                label: `${nextState.status === 'locked' ? 'Locked' : 'Tracking'} ${Math.round(confidence * 100)}%`
+                label: `${nextState.status === 'locked' ? 'LOCKED' : 'TRACKING'}`
               };
 
               const smoothedBox = lerpBox(smoothedBoxRef.current, primaryBox);
@@ -539,9 +528,7 @@ export default function FaceDetectionOverlay({
               };
             } else {
               smoothedBoxRef.current = null;
-              renderStateRef.current = {
-                boxes
-              };
+              renderStateRef.current = { boxes };
             }
           }
 
@@ -558,38 +545,51 @@ export default function FaceDetectionOverlay({
 
       for (const box of renderStateRef.current.boxes) {
         const palette = getTonePalette(box.tone);
-        const lockedPulse = box.tone === 'green' ? (0.5 + (0.5 * Math.sin(time / 180))) : 0;
-        const lineWidth = box.tone === 'green' ? 3 + (lockedPulse * 1.5) : 2.5;
-        const shadowBlur = box.tone === 'green' ? 16 + (lockedPulse * 8) : 10;
-        const labelPaddingX = 12;
-        const labelHeight = 26;
-        const labelWidth = Math.max(118, (box.label.length * 7.2) + (labelPaddingX * 2));
-        const labelX = clamp(box.x, 12, Math.max(displayWidth - labelWidth - 12, 12));
-        const labelY = Math.max(box.y - labelHeight - 10, 12);
-
+        
         context.save();
-        context.lineWidth = lineWidth;
+        
+        // Face selection stroke (Sharp rectangular)
+        context.lineWidth = 2;
         context.strokeStyle = palette.stroke;
+        context.strokeRect(box.x, box.y, box.width, box.height);
+        
+        // Subtle fill for emphasis
         context.fillStyle = palette.fill;
-        context.shadowColor = palette.glow;
-        context.shadowBlur = shadowBlur;
+        context.fillRect(box.x, box.y, box.width, box.height);
 
-        drawRoundedRect(context, box.x, box.y, box.width, box.height, 18);
-        context.fill();
+        // Small corner accents for a "high-tech minimal" look
+        const cornerLen = 15;
+        context.lineWidth = 4;
+        context.beginPath();
+        // Top Left
+        context.moveTo(box.x, box.y + cornerLen);
+        context.lineTo(box.x, box.y);
+        context.lineTo(box.x + cornerLen, box.y);
+        // Top Right
+        context.moveTo(box.x + box.width - cornerLen, box.y);
+        context.lineTo(box.x + box.width, box.y);
+        context.lineTo(box.x + box.width, box.y + cornerLen);
+        // Bottom Right
+        context.moveTo(box.x + box.width, box.y + box.height - cornerLen);
+        context.lineTo(box.x + box.width, box.y + box.height);
+        context.lineTo(box.x + box.width - cornerLen, box.y + box.height);
+        // Bottom Left
+        context.moveTo(box.x + cornerLen, box.y + box.height);
+        context.lineTo(box.x, box.y + box.height);
+        context.lineTo(box.x, box.y + box.height - cornerLen);
         context.stroke();
 
-        context.shadowBlur = 0;
-        context.fillStyle = 'rgba(255, 255, 255, 0.92)';
-        drawRoundedRect(context, labelX, labelY, labelWidth, labelHeight, 13);
-        context.fill();
-        context.strokeStyle = palette.stroke;
-        context.lineWidth = 1.5;
-        context.stroke();
-
-        context.fillStyle = palette.label;
-        context.font = '600 13px Aptos, "Segoe UI Variable", sans-serif';
+        // Label Tag (Minimal)
+        context.fillStyle = palette.labelBg;
+        const tagText = box.label;
+        context.font = 'bold 10px monospace';
+        const textWidth = context.measureText(tagText).width;
+        context.fillRect(box.x, box.y - 18, textWidth + 12, 18);
+        
+        context.fillStyle = palette.labelText;
         context.textBaseline = 'middle';
-        context.fillText(box.label, labelX + labelPaddingX, labelY + (labelHeight / 2));
+        context.fillText(tagText, box.x + 6, box.y - 9);
+
         context.restore();
       }
 
