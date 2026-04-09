@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
-import { CheckCircle2, Clock, ScanFace, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, ScanFace } from 'lucide-react';
 import FaceDetectionOverlay, {
   type FaceOverlaySnapshot
 } from '../components/FaceDetectionOverlay';
@@ -319,34 +319,6 @@ const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveG
   return DEFAULT_GUIDE;
 };
 
-const getGuideToneClasses = (tone: LiveGuide['tone']) => {
-  if (tone === 'ready') return 'border-cyan-400/50 bg-cyan-600/18 text-white';
-  if (tone === 'warning') return 'border-amber-300/50 bg-amber-500/16 text-white';
-  if (tone === 'danger') return 'border-rose-300/50 bg-rose-500/16 text-white';
-  if (tone === 'success') return 'border-emerald-300/50 bg-emerald-500/16 text-white';
-  return 'border-white/15 bg-slate-950/60 text-white';
-};
-
-const getTrackingBadgeClasses = (trackingState: FaceOverlaySnapshot) => {
-  if (trackingState.tone === 'green') {
-    return 'border-emerald-300 bg-emerald-500/15 text-emerald-100';
-  }
-
-  if (trackingState.tone === 'yellow') {
-    return 'border-amber-300 bg-amber-500/15 text-amber-100';
-  }
-
-  return 'border-rose-300 bg-rose-500/15 text-rose-100';
-};
-
-const getFeedBadgeClasses = (status: RecognitionStatus) => {
-  if (status === 'Success') return 'border-emerald-400/30 bg-emerald-500/15 text-emerald-100';
-  if (status === 'Recent') return 'border-amber-400/30 bg-amber-500/15 text-amber-100';
-  if (status === 'Blocked' || status === 'Error') return 'border-rose-400/30 bg-rose-500/15 text-rose-100';
-  if (status === 'Unknown') return 'border-orange-400/30 bg-orange-500/15 text-orange-100';
-  return 'border-white/15 bg-white/5 text-white/80';
-};
-
 const mapTrackingStateToGuide = (trackingState: FaceOverlaySnapshot): RecognitionStatus => {
   if (trackingState.status === 'loading') return 'Loading';
   if (trackingState.status === 'locked') return 'Locked';
@@ -369,7 +341,7 @@ export default function AttendanceKiosk() {
   const [isCapturing, setIsCapturing] = useState(true);
   const [terminalId] = useState(DEFAULT_TERMINAL_ID);
   const [liveGuide, setLiveGuide] = useState<LiveGuide>(DEFAULT_GUIDE);
-  const [trackingState, setTrackingState] = useState<FaceOverlaySnapshot>(DEFAULT_FACE_TRACKING_STATE);
+  const [, setTrackingState] = useState<FaceOverlaySnapshot>(DEFAULT_FACE_TRACKING_STATE);
 
   const pushLog = useCallback((log: RecognitionLog) => {
     setScanFeed((prev) => [log, ...prev].slice(0, 6));

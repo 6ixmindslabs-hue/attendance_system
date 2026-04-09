@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Cpu, Hash, KeyRound, Mail, Shield, ShieldCheck, User } from 'lucide-react';
+import { ArrowRight, Hash, KeyRound, Mail, ShieldCheck } from 'lucide-react';
 
 import { useAuth } from '../auth/useAuth';
 import { api, getApiErrorMessage } from '../lib/api';

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, Clock3, PlayCircle, ScanFace, Square, TerminalSquare } from 'lucide-react';
+import { PlayCircle, ScanFace, Square, TerminalSquare } from 'lucide-react';
 import { api } from '../lib/api';
 
 const DEFAULT_TERMINAL_ID = 'campus-gate-1';

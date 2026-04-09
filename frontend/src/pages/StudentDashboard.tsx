@@ -3,14 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import {
     CalendarDays,
-    CheckCircle2,
-    Clock3,
     Download,
     Filter,
     LogOut,
     ShieldAlert,
-    UserSquare2,
-    XCircle
+    UserSquare2
 } from 'lucide-react';
 import { useAuth } from '../auth/useAuth';
 import { api, getApiErrorMessage } from '../lib/api';
@@ -440,7 +437,7 @@ const StudentDashboard: React.FC = () => {
 
 // --- Helper Components for Cleanliness ---
 
-const ProfileItem = ({ label, value, highlight = false }: { label: string; value: string | undefined; highlight?: boolean }) => (
+const ProfileItem = ({ label, value, highlight = false }: { label: string; value: string | null | undefined; highlight?: boolean }) => (
     <div className="p-6 bg-white">
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">{label}</p>
         <p className={`text-sm font-semibold ${highlight ? 'text-indigo-600' : 'text-gray-900'}`}>{value || 'N/A'}</p>

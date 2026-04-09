@@ -6,8 +6,7 @@ import {
   Download,
   Filter,
   PhoneCall,
-  RefreshCcw,
-  UserCheck
+  RefreshCcw
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { api, getApiErrorMessage } from '../lib/api';
@@ -16,13 +15,6 @@ import type { AttendanceRecord, Department } from '../types/app';
 
 const YEAR_OPTIONS = ['1', '2', '3', '4'];
 const SEMESTER_OPTIONS = ['1', '2', '3', '4', '5', '6', '7', '8'];
-const STATUS_BADGE_CLASSES: Record<string, string> = {
-  Present: 'bg-emerald-100 text-emerald-700',
-  Absent: 'bg-rose-100 text-rose-700',
-  Late: 'bg-amber-100 text-amber-700',
-  'On Duty': 'bg-sky-100 text-sky-700'
-};
-
 type ReportFilters = {
   departmentId: string;
   year: string;
