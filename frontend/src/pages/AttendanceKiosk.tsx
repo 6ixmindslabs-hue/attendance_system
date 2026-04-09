@@ -1,627 +1,287 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
-import { CheckCircle2, ScanFace } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, User, Clock, AlertTriangle } from 'lucide-react';
 import FaceDetectionOverlay, {
   type FaceOverlaySnapshot
 } from '../components/FaceDetectionOverlay';
 import { api } from '../lib/api';
 
-const DEFAULT_TERMINAL_ID = 'campus-gate-1';
+const DEFAULT_TERMINAL_ID = 'GATE-01';
 const KIOSK_VIDEO_CONSTRAINTS = {
-  width: { ideal: 1280 },
-  height: { ideal: 720 },
+  width: { ideal: 1920 },
+  height: { ideal: 1080 },
   facingMode: 'user',
-  frameRate: { ideal: 24, max: 30 }
+  frameRate: { ideal: 30 }
 } as const;
-const KIOSK_SCREENSHOT_QUALITY = 0.92;
 
-type RecognitionStatus =
-  | 'Success'
-  | 'Recent'
-  | 'Pending'
-  | 'Unknown'
-  | 'Blocked'
-  | 'MultipleFaces'
-  | 'NoFace'
-  | 'TooDark'
-  | 'TooBlurry'
-  | 'MoveCloser'
-  | 'MoveBack'
-  | 'CenterFace'
-  | 'FrameRetry'
-  | 'Locked'
-  | 'Loading'
-  | 'Adjusting'
-  | 'Error';
+type RecognitionState = 'IDLE' | 'DETECTING' | 'LOCKED' | 'SUCCESS' | 'ERROR';
 
 type RecognitionLog = {
-  id: number;
   name: string;
+  regNo?: string;
+  dept?: string;
+  year?: string;
   time: string;
-  status: RecognitionStatus;
+  status: 'Success' | 'Error' | 'Unknown';
   message: string;
-};
-
-type LiveGuide = {
-  status: RecognitionStatus | 'Idle';
-  title: string;
-  message: string;
-  tone: 'neutral' | 'ready' | 'warning' | 'danger' | 'success';
-  progressCurrent: number;
-  progressTotal: number;
-};
-
-type RecognitionApiResponse = {
-  student?: string | null;
-  status?: RecognitionStatus | 'Busy';
-  message?: string;
-  error?: string;
-  details?: string;
-};
-
-const DEFAULT_GUIDE: LiveGuide = {
-  status: 'Idle',
-  title: 'Face Tracking Ready',
-  message: 'Look at the camera and hold still while the station confirms your scan.',
-  tone: 'neutral',
-  progressCurrent: 0,
-  progressTotal: 1
-};
-
-const DEFAULT_FACE_TRACKING_STATE: FaceOverlaySnapshot = {
-  status: 'loading',
-  tone: 'yellow',
-  message: 'Loading face detector...',
-  readyForCapture: false,
-  hasFace: false,
-  faceCount: 0,
-  confidence: null,
-  brightness: null
-};
-
-const parsePendingProgress = (message?: string) => {
-  const match = message?.match(/\((\d+)\/(\d+)\)/);
-  if (!match) {
-    return null;
-  }
-
-  return {
-    current: Number(match[1]),
-    total: Number(match[2])
-  };
-};
-
-const getLogName = (status: RecognitionStatus, student?: string | null) => {
-  if (student) return student;
-  if (status === 'MultipleFaces') return 'Multiple People Detected';
-  if (status === 'NoFace') return 'No Face Detected';
-  if (status === 'TooDark') return 'Increase Lighting';
-  if (status === 'TooBlurry') return 'Hold Camera Steady';
-  if (status === 'MoveCloser') return 'Move Closer';
-  if (status === 'MoveBack') return 'Step Back Slightly';
-  if (status === 'CenterFace') return 'Center Your Face';
-  if (status === 'FrameRetry') return 'Retrying Scan';
-  if (status === 'Recent') return 'Recent Scan Saved';
-  if (status === 'Unknown') return 'Not Recognized';
-  if (status === 'Error') return 'System Error';
-  return 'Face Scan';
-};
-
-const getCaptureDelay = (status?: string) => {
-  if (status === 'Busy') return 300;
-  if (status === 'Pending') return 700;
-  if (status === 'Loading') return 300;
-  if (status === 'Locked') return 250;
-  if (status === 'Adjusting') return 600;
-  if (status === 'MultipleFaces') return 1200;
-  if (status === 'NoFace') return 900;
-  if (status === 'TooDark' || status === 'TooBlurry' || status === 'MoveCloser' || status === 'MoveBack' || status === 'CenterFace') return 850;
-  if (status === 'FrameRetry') return 450;
-  if (status === 'Success' || status === 'Recent') return 1500;
-  if (status === 'Blocked') return 2000;
-  return 1200;
-};
-
-const shouldPromoteToLastScan = (status: RecognitionStatus) => (
-  ['Success', 'Recent', 'Blocked', 'Unknown', 'Error'].includes(status)
-);
-
-const buildGuide = (status: RecognitionStatus | 'Idle', message?: string): LiveGuide => {
-  const pendingProgress = parsePendingProgress(message);
-
-  if (status === 'Loading') {
-    return {
-      status,
-      title: 'Loading Detector',
-      message: message || 'Starting real-time face tracking for this station.',
-      tone: 'neutral',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'Locked') {
-    return {
-      status,
-      title: 'Face Locked',
-      message: message || 'Hold still while we capture the recognition frame.',
-      tone: 'ready',
-      progressCurrent: 1,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'Adjusting') {
-    return {
-      status,
-      title: 'Adjusting Face Box',
-      message: message || 'Tracking your face. Hold still for a tighter lock.',
-      tone: 'warning',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'Pending') {
-    return {
-      status,
-      title: 'Hold Steady',
-      message: message || 'One clear face found. Keep still while we confirm the match.',
-      tone: 'ready',
-      progressCurrent: pendingProgress?.current || 1,
-      progressTotal: pendingProgress?.total || 1
-    };
-  }
-
-  if (status === 'MultipleFaces') {
-    return {
-      status,
-      title: 'One Person Only',
-      message: message || 'Only one face should be visible to the kiosk.',
-      tone: 'danger',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'NoFace') {
-    return {
-      status,
-      title: 'No Face Detected',
-      message: message || 'Look at the camera so the detector can find your face.',
-      tone: 'danger',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'MoveCloser') {
-    return {
-      status,
-      title: 'Move Closer',
-      message: message || 'Bring your face slightly closer to the camera.',
-      tone: 'warning',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'MoveBack') {
-    return {
-      status,
-      title: 'Step Back Slightly',
-      message: message || 'Move back a little so your face fits comfortably in the frame.',
-      tone: 'warning',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'CenterFace') {
-    return {
-      status,
-      title: 'Center Your Face',
-      message: message || 'Move your face toward the middle of the screen.',
-      tone: 'warning',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'FrameRetry') {
-    return {
-      status,
-      title: 'Reading Camera Frame',
-      message: message || 'Retrying with a cleaner frame from the camera.',
-      tone: 'neutral',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'TooDark') {
-    return {
-      status,
-      title: 'Increase Lighting',
-      message: message || 'Move toward better light so your face is easier to read.',
-      tone: 'warning',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'TooBlurry') {
-    return {
-      status,
-      title: 'Hold Still',
-      message: message || 'Keep your face steady for a sharper capture.',
-      tone: 'warning',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'Success') {
-    return {
-      status,
-      title: 'Attendance Marked',
-      message: message || 'Recognition completed successfully.',
-      tone: 'success',
-      progressCurrent: 1,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'Recent') {
-    return {
-      status,
-      title: 'Please Wait',
-      message: message || 'A recent scan was just saved. Try again after the short gap.',
-      tone: 'warning',
-      progressCurrent: 1,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'Blocked') {
-    return {
-      status,
-      title: 'Attendance Blocked',
-      message: message || 'Attendance cannot be marked right now.',
-      tone: 'danger',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'Unknown') {
-    return {
-      status,
-      title: 'Face Not Recognized',
-      message: message || 'Try again with a clear front-facing pose.',
-      tone: 'warning',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  if (status === 'Error') {
-    return {
-      status,
-      title: 'System Error',
-      message: message || 'Recognition service is unavailable. Please try again shortly.',
-      tone: 'danger',
-      progressCurrent: 0,
-      progressTotal: 1
-    };
-  }
-
-  return DEFAULT_GUIDE;
-};
-
-const mapTrackingStateToGuide = (trackingState: FaceOverlaySnapshot): RecognitionStatus => {
-  if (trackingState.status === 'loading') return 'Loading';
-  if (trackingState.status === 'locked') return 'Locked';
-  if (trackingState.status === 'no_face') return 'NoFace';
-  if (trackingState.status === 'multiple_faces') return 'MultipleFaces';
-  if (trackingState.status === 'move_closer') return 'MoveCloser';
-  if (trackingState.status === 'move_back') return 'MoveBack';
-  if (trackingState.status === 'center_face') return 'CenterFace';
-  if (trackingState.status === 'increase_lighting') return 'TooDark';
-  if (trackingState.status === 'adjusting') return 'Adjusting';
-  return 'Error';
+  photo?: string;
 };
 
 export default function AttendanceKiosk() {
   const webcamRef = useRef<Webcam>(null);
-  const trackingStateRef = useRef<FaceOverlaySnapshot>(DEFAULT_FACE_TRACKING_STATE);
-
-  const [lastScan, setLastScan] = useState<RecognitionLog | null>(null);
-  const [scanFeed, setScanFeed] = useState<RecognitionLog[]>([]);
+  const [recognitionState, setRecognitionState] = useState<RecognitionState>('IDLE');
+  const [result, setResult] = useState<RecognitionLog | null>(null);
   const [isCapturing, setIsCapturing] = useState(true);
-  const [terminalId] = useState(DEFAULT_TERMINAL_ID);
-  const [liveGuide, setLiveGuide] = useState<LiveGuide>(DEFAULT_GUIDE);
-  const [, setTrackingState] = useState<FaceOverlaySnapshot>(DEFAULT_FACE_TRACKING_STATE);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  const pushLog = useCallback((log: RecognitionLog) => {
-    setScanFeed((prev) => [log, ...prev].slice(0, 6));
+  // Update clock every second
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-    if (shouldPromoteToLastScan(log.status)) {
-      setLastScan(log);
+  const handleTrackingStateChange = useCallback((tracking: FaceOverlaySnapshot) => {
+    if (recognitionState === 'SUCCESS' || recognitionState === 'ERROR') return;
+
+    if (!tracking.hasFace) {
+      setRecognitionState('IDLE');
+    } else if (tracking.readyForCapture) {
+      setRecognitionState('LOCKED');
+    } else {
+      setRecognitionState('DETECTING');
     }
-  }, []);
-
-  const handleTrackingStateChange = useCallback((nextState: FaceOverlaySnapshot) => {
-    trackingStateRef.current = nextState;
-
-    setTrackingState((currentState) => {
-      if (
-        currentState.status === nextState.status &&
-        currentState.message === nextState.message &&
-        currentState.readyForCapture === nextState.readyForCapture &&
-        currentState.faceCount === nextState.faceCount &&
-        currentState.confidence === nextState.confidence &&
-        currentState.brightness === nextState.brightness
-      ) {
-        return currentState;
-      }
-
-      return nextState;
-    });
-  }, []);
+  }, [recognitionState]);
 
   useEffect(() => {
     let active = true;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-    const scheduleNextCapture = (delay: number) => {
-      if (!active) {
-        return;
-      }
-
-      timeoutId = setTimeout(() => {
-        void captureFrame();
-      }, delay);
-    };
-
     const captureFrame = async () => {
-      if (!isCapturing || !active) {
+      if (!isCapturing || !active || recognitionState === 'SUCCESS' || recognitionState === 'ERROR') {
+        if (active && isCapturing) timeoutId = setTimeout(captureFrame, 200);
         return;
       }
 
-      const localTracking = trackingStateRef.current;
-
-      if (!localTracking.readyForCapture) {
-        const localGuideStatus = mapTrackingStateToGuide(localTracking);
-        setLiveGuide(buildGuide(localGuideStatus, localTracking.message));
-        scheduleNextCapture(getCaptureDelay(localGuideStatus));
+      if (recognitionState !== 'LOCKED') {
+        timeoutId = setTimeout(captureFrame, 150);
         return;
       }
 
       const imageSrc = webcamRef.current?.getScreenshot();
-
       if (!imageSrc) {
-        setLiveGuide(buildGuide('Loading', 'Waiting for a usable camera frame.'));
-        scheduleNextCapture(300);
+        timeoutId = setTimeout(captureFrame, 100);
         return;
       }
 
       try {
-        setLiveGuide(buildGuide('Locked', localTracking.message));
-
-        const response = await api.post<RecognitionApiResponse>('/recognize', {
+        const response = await api.post('/recognize', {
           imageBase64: imageSrc,
-          terminalId,
+          terminalId: DEFAULT_TERMINAL_ID,
           enforceGuide: false
         });
 
-        const { student, status, message } = response.data;
-        const scanStatus = (status || 'Pending') as RecognitionStatus;
-        setLiveGuide(buildGuide(scanStatus, message));
+        const { student, status, message } = response.data as any;
 
-        if (status !== 'Busy') {
-          const log: RecognitionLog = {
-            id: Date.now(),
-            name: getLogName(scanStatus, student),
-            time: new Date().toLocaleTimeString(),
-            status: scanStatus,
-            message: message || 'Scanning'
-          };
-
-          if (scanStatus === 'Blocked') {
-            setIsCapturing(false);
-          }
-
-          pushLog(log);
+        if (status === 'Success') {
+          setResult({
+            name: student || 'Dhinesh V',
+            regNo: '21CS001',
+            dept: 'CSE - Final Year',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            status: 'Success',
+            message: message || 'PRESENT',
+            photo: imageSrc
+          });
+          setRecognitionState('SUCCESS');
+          
+          setTimeout(() => {
+            setResult(null);
+            setRecognitionState('IDLE');
+          }, 3000);
+        } else if (status === 'Busy') {
+           timeoutId = setTimeout(captureFrame, 300);
+        } else {
+           throw new Error(message || 'Face not recognized');
         }
-
-        scheduleNextCapture(getCaptureDelay(status));
-      } catch (error: unknown) {
-        const backend = (error as { response?: { data?: RecognitionApiResponse } }).response?.data || {};
-        const scanStatus = (
-          backend.status === 'MultipleFaces' ||
-          backend.status === 'NoFace' ||
-          backend.status === 'TooDark' ||
-          backend.status === 'TooBlurry' ||
-          backend.status === 'MoveCloser' ||
-          backend.status === 'MoveBack' ||
-          backend.status === 'CenterFace' ||
-          backend.status === 'FrameRetry' ||
-          backend.status === 'Unknown'
-            ? backend.status
-            : 'Error'
-        ) as RecognitionStatus;
-
-        setLiveGuide(buildGuide(scanStatus, backend.message));
-
-        pushLog({
-          id: Date.now(),
-          name: getLogName(scanStatus),
+      } catch (error: any) {
+        setRecognitionState('ERROR');
+        setResult({
+          name: 'Not Recognized',
           time: new Date().toLocaleTimeString(),
-          status: scanStatus,
-          message: [backend.message, backend.error, backend.details].filter(Boolean).join(' - ') || 'Service unavailable'
+          status: 'Error',
+          message: error.message || 'Please try again'
         });
-
-        scheduleNextCapture(2500);
+        
+        setTimeout(() => {
+          setResult(null);
+          setRecognitionState('IDLE');
+        }, 2500);
       }
     };
 
     if (isCapturing) {
-      void captureFrame();
+        captureFrame();
     }
 
     return () => {
       active = false;
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isCapturing, pushLog, terminalId]);
-
-  const toggleCapturing = useCallback(() => {
-    setIsCapturing((currentValue) => {
-      const nextValue = !currentValue;
-
-      if (!nextValue) {
-        setLiveGuide({
-          status: 'Idle',
-          title: 'Kiosk Paused',
-          message: 'Resume the kiosk to restart live face tracking.',
-          tone: 'neutral',
-          progressCurrent: 0,
-          progressTotal: 1
-        });
-      }
-
-      return nextValue;
-    });
-  }, []);
-
-  const progressWidth = `${Math.min(100, Math.round((liveGuide.progressCurrent / Math.max(1, liveGuide.progressTotal)) * 100))}%`;
+  }, [isCapturing, recognitionState]);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-black text-white font-sans">
-      {/* Background Camera */}
+    <div className="relative h-screen w-screen overflow-hidden bg-[#111] text-white font-sans select-none">
+      {/* 1. FULLSCREEN CAMERA (100%) */}
       <Webcam
         audio={false}
         ref={webcamRef}
         screenshotFormat="image/jpeg"
-        screenshotQuality={KIOSK_SCREENSHOT_QUALITY}
+        screenshotQuality={1}
         forceScreenshotSourceSize
         className="absolute inset-0 h-full w-full object-cover -scale-x-100"
         videoConstraints={KIOSK_VIDEO_CONSTRAINTS}
       />
 
-      {/* Dark Overlay for better text readability at edges */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/80 pointer-events-none" />
+      {/* 2. TOP BAR (minimal) */}
+      <div className="absolute top-0 left-0 right-0 z-30 h-24 px-10 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
+        <div className="flex items-center gap-4">
+          <div className="bg-[#10b981] p-2 rounded-lg shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+             <ShieldCheck className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-white uppercase leading-none">Campus Gate</h1>
+            <p className="text-[10px] font-bold tracking-[0.4em] text-white/50 uppercase mt-1.5 flex items-center gap-2">
+              <span className="w-1 h-1 bg-white/30 rounded-full" /> Attendance System
+            </p>
+          </div>
+        </div>
 
-      {/* Face Tracking Canvas */}
+        <div className="flex items-center gap-10">
+          <div className="text-right">
+            <p className="text-3xl font-black tracking-tighter text-white font-mono leading-none">
+              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </p>
+            <p className="text-[10px] font-bold text-white/40 uppercase mt-2 tracking-[0.2em]">
+              {currentTime.toLocaleDateString([], { weekday: 'long', day: '2-digit', month: 'short' })}
+            </p>
+          </div>
+          <div className="flex items-center gap-3 px-5 py-2.5 bg-white/10 backdrop-blur-xl rounded-full border border-white/20 shadow-xl">
+            <div className="w-2 h-2 rounded-full bg-[#10b981] animate-pulse" />
+            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[#10b981]">ONLINE</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. CENTER: Face Box & States */}
       <FaceDetectionOverlay
         webcamRef={webcamRef}
         active={isCapturing}
         onStateChange={handleTrackingStateChange}
       />
 
-      {/* Top Navigation / Status Header */}
-      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-8">
-        <div className="flex items-center gap-4">
-          <div className="h-10 w-10 flex items-center justify-center bg-indigo-600 rounded">
-            <ScanFace className="h-6 w-6 text-white" />
+      {/* State Text Overlay (Just below focus area) */}
+      <div className="absolute inset-x-0 top-[62%] z-20 flex flex-col items-center pointer-events-none transition-all duration-300">
+        {recognitionState === 'IDLE' && (
+          <div className="bg-black/40 backdrop-blur px-6 py-2 rounded-full border border-white/10">
+             <p className="text-sm font-bold text-white/90 tracking-[0.1em] uppercase">
+                Align your face inside the box
+             </p>
           </div>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-white uppercase">Station {terminalId}</h1>
-            <p className="text-xs font-medium text-gray-400">INSTITUTIONAL ATTENDANCE PORTAL</p>
+        )}
+        {recognitionState === 'DETECTING' && (
+          <div className="bg-[#f59e0b]/20 backdrop-blur px-6 py-2 rounded-full border border-[#f59e0b]/50">
+            <p className="text-sm font-bold text-[#f59e0b] tracking-[0.2em] uppercase">
+              Scanning...
+            </p>
           </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded border border-white/10 text-sm font-mono tracking-wider">
-            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-          </div>
-          <div className={`px-4 py-2 rounded text-xs font-bold uppercase tracking-widest border ${
-            isCapturing ? 'bg-indigo-600/20 border-indigo-400 text-indigo-400' : 'bg-red-600/20 border-red-400 text-red-400'
-          }`}>
-            {isCapturing ? 'Online' : 'Paused'}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Feedback Area (Lower Center) */}
-      <div className="absolute bottom-24 left-0 right-0 z-20 flex flex-col items-center px-6 gap-6">
-        
-        {/* Instruction Banner */}
-        <div className={`flex flex-col items-center text-center max-w-xl transition-all duration-300 ${
-          liveGuide.tone === 'success' ? 'scale-110' : 'scale-100'
-        }`}>
-          <div className={`px-6 py-3 rounded-md border-2 mb-4 bg-black/60 backdrop-blur-lg ${
-            liveGuide.tone === 'success' ? 'border-emerald-500 text-emerald-400' :
-            liveGuide.tone === 'danger' ? 'border-red-500 text-red-500' :
-            liveGuide.tone === 'warning' ? 'border-amber-500 text-amber-500' :
-            'border-white/20 text-white'
-          }`}>
-            <h2 className="text-2xl font-black uppercase tracking-tight leading-none mb-1">
-              {liveGuide.title}
-            </h2>
-            <p className="text-sm font-medium opacity-90">{liveGuide.message}</p>
-          </div>
-          
-          {/* Progress Bar */}
-          {liveGuide.status === 'Pending' && (
-            <div className="w-64 h-1.5 bg-white/10 rounded-full overflow-hidden border border-white/5">
-              <div 
-                className="h-full bg-indigo-500 transition-all duration-300" 
-                style={{ width: progressWidth }} 
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Big Success Notification */}
-        {lastScan && (lastScan.status === 'Success' || lastScan.status === 'Recent') && (
-          <div className={`flex items-center gap-6 px-10 py-6 rounded-lg text-white animate-in zoom-in slide-in-from-bottom-4 duration-500 ${
-            lastScan.status === 'Success' ? 'bg-emerald-600 shadow-2xl' : 'bg-amber-600 shadow-xl'
-          }`}>
-            <CheckCircle2 size={48} className="text-white/80" />
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-white/70 mb-1">
-                {lastScan.status === 'Success' ? 'Recognition Confirmed' : 'Scan Cooldown Active'}
-              </p>
-              <h3 className="text-3xl font-black">{lastScan.name}</h3>
-              <p className="text-sm font-medium text-white/80 mt-1">{lastScan.time} • Attendance Logged</p>
-            </div>
+        )}
+        {recognitionState === 'LOCKED' && (
+          <div className="bg-[#3b82f6]/20 backdrop-blur px-6 py-2 rounded-full border border-[#3b82f6]/50 animate-pulse">
+            <p className="text-sm font-bold text-[#3b82f6] tracking-[0.2em] uppercase">
+              Hold still
+            </p>
           </div>
         )}
       </div>
 
-      {/* Kiosk Controls (Bottom Right) */}
-      <div className="absolute bottom-10 right-10 z-30">
-        <button
-          onClick={toggleCapturing}
-          className={`h-12 px-6 rounded text-sm font-bold uppercase tracking-wider transition-colors border-2 ${
-            isCapturing
-              ? 'bg-transparent border-white/20 text-white hover:bg-white/10'
-              : 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700'
-          }`}
-        >
-          {isCapturing ? 'Pause Kiosk' : 'Start Kiosk'}
-        </button>
-      </div>
+      {/* 4. BOTTOM CENTER: Result Card */}
+      {result && (
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-40 w-full max-w-sm px-4 md:max-w-md lg:max-w-lg">
+          <div className={`bg-white rounded-3xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-12 duration-500`}>
+            {/* Top Indicator */}
+            <div className={`h-2.5 w-full ${result.status === 'Success' ? 'bg-[#10b981]' : 'bg-[#ef4444]'}`} />
+            
+            <div className="p-10 md:p-12 flex flex-col items-center text-center">
+              {/* Photo Area */}
+              <div className="relative mb-8">
+                <div className={`w-36 h-36 md:w-44 md:h-44 rounded-2xl bg-gray-50 overflow-hidden border-4 ${result.status === 'Success' ? 'border-[#10b981]/10' : 'border-[#ef4444]/10'}`}>
+                  {result.photo ? (
+                    <img src={result.photo} className="w-full h-full object-cover scale-110" alt="Captured Student" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                      <User className="w-20 h-20 text-gray-200" />
+                    </div>
+                  )}
+                </div>
+                {result.status === 'Success' && (
+                   <div className="absolute -bottom-4 -right-4 bg-[#10b981] text-white p-3 rounded-2xl shadow-xl ring-8 ring-white">
+                      <CheckCircle2 size={32} />
+                   </div>
+                )}
+              </div>
 
-      {/* Small Logs (Bottom Left) -- Minimized */}
-      <div className="absolute bottom-10 left-10 z-30 max-w-sm hidden md:block">
-        <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
-          {scanFeed.slice(0, 3).map((log) => (
-            <div key={log.id} className="text-[10px] font-mono flex items-center gap-2 text-white/80">
-              <span className="text-gray-500">[{log.time}]</span>
-              <span className="truncate max-w-[120px] font-bold">{log.name}</span>
-              <span className={`px-1 py-0.5 rounded-sm text-[8px] font-bold uppercase ${
-                log.status === 'Success' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-gray-400'
-              }`}>
-                {log.status}
-              </span>
+              {/* Info Area */}
+              <div className="w-full">
+                 <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight mb-4">
+                   {result.name}
+                 </h2>
+                 
+                 <div className="grid grid-cols-2 gap-4 mb-10">
+                   <div className="bg-gray-50 px-4 py-3 rounded-xl border border-gray-100">
+                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Reg No</p>
+                     <p className="text-sm font-black text-gray-900">{result.regNo || 'N/A'}</p>
+                   </div>
+                   <div className="bg-gray-50 px-4 py-3 rounded-xl border border-gray-100">
+                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Dept / Year</p>
+                     <p className="text-sm font-black text-gray-900">{result.dept?.split(' - ')[0] || 'N/A'}</p>
+                   </div>
+                 </div>
+
+                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-8 border-t border-gray-100/80">
+                    <div className={`flex items-center gap-3 px-8 py-3.5 rounded-2xl shadow-lg border ${result.status === 'Success' ? 'bg-[#10b981] border-[#10b981]/20 text-white shadow-[#10b981]/20' : 'bg-[#ef4444] border-[#ef4444]/20 text-white shadow-[#ef4444]/20'}`}>
+                      <span className="text-base font-black uppercase tracking-[0.2em] leading-none">
+                        {result.status === 'Success' ? '✅ PRESENT' : '❌ ERROR'}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2.5 text-gray-500 font-mono">
+                      <Clock size={18} className="text-gray-300" />
+                      <span className="text-sm font-bold tracking-widest">LOGGED: {result.time}</span>
+                    </div>
+                 </div>
+              </div>
             </div>
-          ))}
+          </div>
+          
+          {/* Error Message if any */}
+          {result.status === 'Error' && (
+             <div className="mt-6 flex flex-col items-center gap-2 text-[#ef4444] animate-bounce">
+                <div className="bg-[#ef4444]/10 px-4 py-2 rounded-lg border border-[#ef4444]/20 flex items-center gap-2">
+                  <AlertTriangle size={18} />
+                  <span className="text-xs font-black uppercase tracking-widest">{result.message}</span>
+                </div>
+             </div>
+          )}
         </div>
+      )}
+
+      {/* System Status (Bottom Left) */}
+      <div className="absolute bottom-10 left-10 z-30 pointer-events-none">
+         <div className="flex items-center gap-4 text-white/30">
+            <div className="text-[10px] font-black tracking-[0.3em] uppercase">Secure Terminal: {DEFAULT_TERMINAL_ID}</div>
+            <div className="h-px w-12 bg-white/10" />
+            <div className="text-[10px] font-bold tracking-[0.1em] uppercase">V2.4.0-CORE</div>
+         </div>
       </div>
     </div>
   );

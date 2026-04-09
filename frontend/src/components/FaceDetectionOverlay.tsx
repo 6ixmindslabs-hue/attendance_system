@@ -72,30 +72,38 @@ const DEFAULT_FACE_OVERLAY_STATE: FaceOverlaySnapshot = {
   brightness: null
 };
 
-const getTonePalette = (tone: FaceOverlayTone) => {
+const getTonePalette = (tone: FaceOverlayTone | 'blue' | 'gray') => {
   if (tone === 'green') {
     return {
-      stroke: '#10b981', // Success emerald-600
+      stroke: '#10b981', // SUCCESS
       fill: 'rgba(16, 185, 129, 0.05)',
-      labelBg: '#10b981',
-      labelText: '#ffffff'
+    };
+  }
+
+  if (tone === 'blue') {
+    return {
+      stroke: '#3b82f6', // LOCKED
+      fill: 'rgba(59, 130, 246, 0.05)',
     };
   }
 
   if (tone === 'yellow') {
     return {
-      stroke: '#f59e0b', // Amber-500
+      stroke: '#f59e0b', // WARNING / DETECTING
       fill: 'transparent',
-      labelBg: '#f59e0b',
-      labelText: '#ffffff'
+    };
+  }
+
+  if (tone === 'red') {
+    return {
+      stroke: '#ef4444', // ERROR
+      fill: 'rgba(239, 68, 68, 0.05)',
     };
   }
 
   return {
-    stroke: '#ef4444', // Red-500
-    fill: 'rgba(239, 68, 68, 0.05)',
-    labelBg: '#ef4444',
-    labelText: '#ffffff'
+    stroke: '#9ca3af', // IDLE (gray-400)
+    fill: 'transparent',
   };
 };
 
@@ -414,16 +422,8 @@ export default function FaceDetectionOverlay({
       context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
       context.clearRect(0, 0, displayWidth, displayHeight);
 
-      // 1. Draw Static Guide Box (Minimal rectangular boundary)
-      const guideSize = Math.min(displayWidth, displayHeight) * 0.45;
-      const guideX = (displayWidth - guideSize) / 2;
-      const guideY = (displayHeight - guideSize) / 2;
-      
-      context.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-      context.lineWidth = 1;
-      context.setLineDash([10, 10]);
-      context.strokeRect(guideX, guideY, guideSize, guideSize);
-      context.setLineDash([]);
+      // Removed Dash/Guide box
+
 
       if (!detectorRef.current || !video || video.readyState < 2 || !video.videoWidth || !video.videoHeight) {
         animationFrameRef.current = window.requestAnimationFrame(drawFrame);
@@ -548,18 +548,15 @@ export default function FaceDetectionOverlay({
         
         context.save();
         
-        // Face selection stroke (Sharp rectangular)
-        context.lineWidth = 2;
+        // Face selection stroke (Sharp rectangular, 3px solid)
+        context.lineWidth = 3;
         context.strokeStyle = palette.stroke;
         context.strokeRect(box.x, box.y, box.width, box.height);
         
-        // Subtle fill for emphasis
-        context.fillStyle = palette.fill;
-        context.fillRect(box.x, box.y, box.width, box.height);
-
-        // Small corner accents for a "high-tech minimal" look
-        const cornerLen = 15;
-        context.lineWidth = 4;
+        // corner markers for realism
+        const cornerLen = 24;
+        context.lineWidth = 6;
+        context.lineCap = 'square';
         context.beginPath();
         // Top Left
         context.moveTo(box.x, box.y + cornerLen);
@@ -578,17 +575,6 @@ export default function FaceDetectionOverlay({
         context.lineTo(box.x, box.y + box.height);
         context.lineTo(box.x, box.y + box.height - cornerLen);
         context.stroke();
-
-        // Label Tag (Minimal)
-        context.fillStyle = palette.labelBg;
-        const tagText = box.label;
-        context.font = 'bold 10px monospace';
-        const textWidth = context.measureText(tagText).width;
-        context.fillRect(box.x, box.y - 18, textWidth + 12, 18);
-        
-        context.fillStyle = palette.labelText;
-        context.textBaseline = 'middle';
-        context.fillText(tagText, box.x + 6, box.y - 9);
 
         context.restore();
       }
